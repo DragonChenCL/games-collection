@@ -131,3 +131,6 @@ dialog p{font-size:14px}dialog .fact{font-size:12px}.controls-guide p{font-size:
   #atlas-toggle{margin:0;padding:5px 8px;min-height:48px;border-top:0;font-size:12px}
   #district-links{position:fixed;top:180px;bottom:190px;left:12px;right:72px;width:auto;max-height:none;padding:6px;scrollbar-width:thin}
 }
+@media(max-height:500px) and (max-width:650px){
+  #district-links{right:0;bottom:100%;width:min(300px,calc(100vw - 230px));max-height:min(190px,calc(100dvh - 230px))}
+}
