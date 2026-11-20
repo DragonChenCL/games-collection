@@ -1,13 +1,16 @@
 // Discourse micro-app entry: routes saves, the font and fullscreen through the platform SDK, then starts the game.
 import { SAVE_KEY } from '../src/game.js';
+import { startGame } from '../src/main.js';
 
 const sdk = globalThis.miniApp ?? null;
 const has = permission => Boolean(sdk?.permissions.has(permission));
 const within = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(Error('TIMEOUT')), ms))]);
 
+// Resolves to { value, readable }; an unreadable save must never be overwritten by a fresh game.
 async function loadSave() {
-  if (!has('storage.read')) return null;
-  try { return await within(sdk.localStorage.getItem(SAVE_KEY), 4000); } catch { return null; }
+  if (!has('storage.read')) return { value: null, readable: true };
+  try { return { value: await within(sdk.localStorage.getItem(SAVE_KEY), 8000), readable: true }; }
+  catch (error) { console.warn('[qingming] save unreadable', error); return { value: null, readable: false }; }
 }
 
 async function loadFont() {
@@ -15,26 +18,31 @@ async function loadFont() {
   document.fonts.add(await new FontFace('Song', bytes, { weight: '400' }).load());
 }
 
-function installStorage(saved) {
-  const values = new Map(saved === null ? [] : [[SAVE_KEY, saved]]);
-  let pending = null, writing = false;
+function installStorage({ value, readable }) {
+  const values = new Map(value === null ? [] : [[SAVE_KEY, value]]);
+  const writable = readable && has('storage.write');
+  let pending = null, writing = false, failed = false;
   async function flush() {
     if (writing) return;
     writing = true;
     while (pending) {
-      const [key, value] = pending;
+      const entry = pending;
       pending = null;
-      try { await sdk.localStorage.setItem(key, value); } catch (error) { console.warn('[qingming] save failed', error); }
+      try { await sdk.localStorage.setItem(...entry); failed = false; }
+      catch (error) { console.warn('[qingming] save failed', error); failed = true; pending ??= entry; break; }
     }
     writing = false;
   }
   globalThis.__qingmingStorage = {
     getItem: key => values.get(String(key)) ?? null,
+    // Throwing makes the game show its own "progress not saved" notice.
     setItem(key, value) {
-      if (!has('storage.write')) throw Error('STORAGE_UNAVAILABLE');
+      if (!writable) throw Error('STORAGE_UNAVAILABLE');
       values.set(String(key), String(value));
       pending = [String(key), String(value)];
+      const lastWriteFailed = failed;
       void flush();
+      if (lastWriteFailed) throw Error('STORAGE_WRITE_FAILED');
     },
   };
 }
@@ -56,15 +64,15 @@ function adaptPage() {
 }
 
 async function start() {
-  let saved = null;
+  let save = { value: null, readable: true };
   if (sdk) {
     try { await sdk.ready; } catch (error) { console.warn('[qingming] SDK unavailable', error); }
     const font = loadFont().catch(error => console.warn('[qingming] font unavailable', error));
-    [saved] = await Promise.all([loadSave(), within(font, 3000).catch(() => {})]);
+    [save] = await Promise.all([loadSave(), within(font, 3000).catch(() => {})]);
   }
-  installStorage(saved);
+  installStorage(save);
   try {
-    await import('../src/main.js');
+    startGame();
     adaptPage();
   } catch (error) {
     console.error(error);

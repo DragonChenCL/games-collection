@@ -7,11 +7,19 @@ export default defineConfig({
   publicDir: false,
   define: { localStorage: '__qingmingStorage' },
   plugins: [{
-    name: 'mapp-no-url-fonts',
+    name: 'mapp-adapt-game',
     enforce: 'pre',
-    // The platform rejects URL fonts; entry.js loads the packaged font with FontFace instead.
     transform(code, id) {
+      // The platform rejects URL fonts; entry.js loads the packaged font with FontFace instead.
       if (id.endsWith('/src/style.css')) return code.replace(/@font-face\{[^}]*\}/g, '');
+      // An IIFE bundle runs every module at load, so the game body becomes a function that
+      // entry.js calls once the save has been read from the platform.
+      if (id.endsWith('/src/main.js')) {
+        const imports = [], body = [];
+        for (const line of code.split('\n')) (/^import\s/.test(line) ? imports : body).push(line);
+        if (body.some(line => /^\s*(import|export)\s/.test(line))) throw Error('main.js: unexpected import/export in the game body');
+        return `${imports.join('\n')}\nexport function startGame() {\n${body.join('\n')}\n}\n`;
+      }
     },
   }],
   build: {
@@ -27,6 +35,5 @@ export default defineConfig({
       fileName: () => 'app.js',
       cssFileName: 'app',
     },
-    rollupOptions: { output: { inlineDynamicImports: true } },
   },
 });
