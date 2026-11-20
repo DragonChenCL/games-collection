@@ -63,9 +63,9 @@ function renderTable() {
 }
 
 document.getElementById('add').onclick = () => {
-  const v = parseFloat(document.getElementById('price').value);
+  const v = Math.round(parseFloat(document.getElementById('price').value) * 100) / 100;
   if (!(v > 0)) { document.getElementById('price').focus(); return; }
-  players.push({ price: Math.round(v * 100) / 100, name: document.getElementById('name').value.trim() });
+  players.push({ price: v, name: document.getElementById('name').value.trim() });
   players.sort((a, b) => a.price - b.price);
   save(); renderTable();
   document.getElementById('price').value = ''; document.getElementById('name').value = '';
