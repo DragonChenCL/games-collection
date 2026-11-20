@@ -15,6 +15,8 @@
 
 这是依据画作意象创作的可玩场景，并非原画的逐像素、建筑或史学考据复原。
 
+**黄金天台模拟器**（`games/gold-rooftop/`）：像素画风的玩梗小页面。每 10 秒读取一次国际现货金价，按汇率折成元/克；每个买入价对应一栋楼，亏 1% 上 1 层，赚钱的人留在地面。可以添加自己的买入价和昵称，名单保存在当前浏览器。金价来自 gold-api.com，美元兑人民币汇率来自 open.er-api.com（每日参考价），由浏览器直接请求，没有后端；结果只是折算，不含国内溢价与工费，不构成投资建议。
+
 ## 运行
 
 需要 Node.js 20.19+ 或 22.12+。
@@ -22,12 +24,13 @@
 ```sh
 npm install
 npm run dev       # 开发清明上河图，默认端口 5173
+npm run dev --workspace=games/gold-rooftop   # 开发黄金天台模拟器，默认端口 5174
 npm test          # 游戏与静态服务器测试
 npm run build    # 构建合集和每个游戏
 npm start        # 生产预览，默认端口 4173，可用 PORT 修改
 ```
 
-生产入口：`/` 为合集首页，`/games/qingming/` 为游戏。`dist/` 可部署到普通静态托管服务，包括站点的子目录；资源与合集导航均使用相对路径。
+生产入口：`/` 为合集首页，`/games/qingming/` 与 `/games/gold-rooftop/` 为游戏。`dist/` 可部署到普通静态托管服务，包括站点的子目录；资源与合集导航均使用相对路径。
 
 下载的试玩包已经包含 `dist/`。无需 Node 或安装依赖，解压进入合集目录后，一条命令启动：
 
@@ -41,7 +44,7 @@ python3 -m http.server 4173 --bind 0.0.0.0 --directory dist
 
 仓库管理员在 Settings → Pages 把 Source 设为 **GitHub Actions**。免费账户需使用公开仓库；公开网站不等于私有访问，任何拿到地址的人都能打开。
 
-`.github/workflows/pages.yml` 在合并到 `main` 后自动测试、构建，并把整个 `dist/` 发布到 Pages；也可在 Actions 手动运行。成功后从工作流的 `github-pages` 环境链接打开合集，游戏在其下的 `games/qingming/`。后续合并到 `main` 会自动更新，无需 Node 常驻服务器。个人进度仍保存在各自浏览器中。
+`.github/workflows/pages.yml` 在合并到 `main` 后自动测试、构建，并把整个 `dist/` 发布到 Pages；也可在 Actions 手动运行。成功后从工作流的 `github-pages` 环境链接打开合集，游戏在其下的 `games/<slug>/`。后续合并到 `main` 会自动更新，无需 Node 常驻服务器。个人进度仍保存在各自浏览器中。
 
 ### 操作
 
@@ -71,7 +74,7 @@ python3 -m http.server 4173 --bind 0.0.0.0 --directory dist
 
 `game.js` 维护道路图、路径搜索与存档校验；`scene.js` 绘制长卷，`eye.js` 绘制第一人称透视；`activities.js` 提供五种远郊小游戏，`audio.js` 合成音景；`main.js` 连接输入、任务和游戏循环。字体及创作边界见 `games/qingming/CREDITS.md`。
 
-没有账号、服务器端存档、统计跟踪、运行时第三方请求或 service worker；不承诺首次断网加载。Canvas 场景需要现代浏览器与图形支持。
+没有账号、服务器端存档、统计跟踪或 service worker；除黄金天台模拟器读取行情的两个公开接口外，没有运行时第三方请求；不承诺首次断网加载。Canvas 场景需要现代浏览器与图形支持。
 
 ## Discourse 微应用打包
 

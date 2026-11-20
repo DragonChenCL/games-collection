@@ -1,0 +1,29 @@
+:root { --gold:#ffd23f; --bg:#0d0b1e; --panel:#1b1838; --line:#3d3a6b; --red:#ff5d5d; --green:#5dff9b; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:#e8e6ff; font-family:"Courier New","Microsoft YaHei","PingFang SC",monospace; }
+.wrap { max-width:1200px; margin:0 auto; padding:14px; }
+h1 { margin:4px 0 12px; font-size:26px; color:var(--gold); letter-spacing:4px; text-shadow:3px 3px 0 #a3550a, 6px 6px 0 #000; }
+h1 small { font-size:13px; color:#9a97c9; letter-spacing:1px; text-shadow:none; margin-left:10px; }
+.hud { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+.box { background:var(--panel); border:3px solid var(--line); box-shadow:4px 4px 0 #000; padding:8px 12px; }
+.box .k { font-size:12px; color:#9a97c9; }
+.box .v { font-size:22px; font-weight:bold; color:var(--gold); margin-top:2px; }
+.box .v.up { color:var(--red); } .box .v.down { color:var(--green); }
+.stage { border:3px solid var(--line); box-shadow:4px 4px 0 #000; overflow-x:auto; background:#000; }
+canvas { display:block; image-rendering:pixelated; }
+.ctrl { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; align-items:center; }
+input, button { font:inherit; font-size:15px; padding:7px 10px; border:3px solid var(--line); background:#0f0d24; color:#fff; }
+input { width:170px; }
+button { background:var(--gold); color:#2b1700; border-color:#a3550a; font-weight:bold; cursor:pointer; box-shadow:3px 3px 0 #000; }
+button:active { transform:translate(2px,2px); box-shadow:1px 1px 0 #000; }
+button.ghost { background:#2a2752; color:#cfcdf5; border-color:var(--line); }
+button.del { padding:1px 8px; font-size:13px; background:#52273a; color:#ffb3b3; border-color:#7a3a52; box-shadow:none; }
+table { width:100%; border-collapse:collapse; background:var(--panel); border:3px solid var(--line); box-shadow:4px 4px 0 #000; }
+th, td { padding:7px 10px; text-align:right; border-bottom:2px solid #2a2752; font-size:14px; }
+th { color:#9a97c9; font-weight:normal; } th:first-child, td:first-child { text-align:left; }
+.loss { color:var(--green); } .gain { color:var(--red); }
+.note { color:#7b78a8; font-size:12px; margin:12px 0 4px; line-height:1.7; }
+#status.err { color:var(--red); }
+@media (max-width:700px) { .hud { grid-template-columns:repeat(2,1fr); } }
+.back { display:inline-block; color:#9a97c9; font-size:13px; text-decoration:none; margin-bottom:6px; }
+.back:hover { color:var(--gold); }
