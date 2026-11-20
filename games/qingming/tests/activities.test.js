@@ -26,3 +26,11 @@ test('a wrong cup locks the round until the shuffle is replayed',t=>{
   a.get('activity-again').onclick();assert.ok(a.cups.every(b=>b.disabled));
   a.advance(6);a.cups[0].onclick();assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['fair']);
 });
+
+test('missing a hammer strike resets the consecutive-hit streak',t=>{
+  const a=activity(t,'shipyard'),hit=()=>a.get('activity-hit').onclick();
+  hit();assert.equal(a.get('activity-progress').value,1/3);
+  a.advance(.5);hit();assert.equal(a.get('activity-progress').value,0);
+  a.advance(.85);hit();hit();assert.equal(a.state.coins,0);assert.equal(a.get('activity-progress').value,2/3);
+  hit();assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['shipyard']);
+});

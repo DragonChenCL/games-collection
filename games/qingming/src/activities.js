@@ -14,7 +14,7 @@ export function startActivity(p,{state,showDialog,chime,save,updateHUD}){
     showDialog(`${activity.title} · 成了！`,`<p>${activity.npc}向你道谢，递来<b>${first?15:3} 文</b>。${first?'这一段乡野相逢已记入手记。':'老朋友，再来玩！'}</p><p>乡野游艺：<b>${state.rural.length} / 5</b>。船坞、水磨、古刹、春集和远郊，各有一段小事等你亲手来做。</p>`);
   };
   let previous=performance.now(),elapsed=0,position=50,success=0,held=0,turn=0,stage=0,resultGuard=()=>{};
-  if(activity.kind==='timing')$('#activity-hit').onclick=()=>{if(position>=42&&position<=62){success++;progress(success/3);chime();result(`好锤法！${success} / 3`);if(success===3)complete();}else result('这一锤偏了。等指针进入命中区，再落锤。');};
+  if(activity.kind==='timing')$('#activity-hit').onclick=()=>{if(position>=42&&position<=62){success++;progress(success/3);chime();result(`好锤法！${success} / 3`);if(success===3)complete();}else{success=0;progress(0);result('这一锤偏了。等指针进入命中区，再落锤。');}};
   if(activity.kind==='wheel'){
     const button=$('#activity-wheel');let angle=null,dragged=false;
     const rotate=n=>{turn=Math.max(0,turn+n);button.querySelector('svg').style.transform=`rotate(${turn}rad)`;progress(turn/(Math.PI*4));if(turn>=Math.PI*4)complete();};
