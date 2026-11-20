@@ -44,6 +44,13 @@ test('normalizes directory URLs so relative game assets load', async () => {
   assert.equal(response.headers.get('location'), '/games/example/');
 });
 
+test('encoded authority and dot segments cannot become an external redirect', async () => {
+  const response = await fetch(base + '/%2fattacker.example%2f..%2fgames%2fexample', { redirect: 'manual' });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), '/games/example/');
+  assert.equal(new URL(response.headers.get('location'), base).origin, base);
+});
+
 test('serves SVG and install manifests with correct MIME types', async () => {
   assert.equal((await fetch(base + '/games/example/icon.svg')).headers.get('content-type'), 'image/svg+xml');
   assert.equal((await fetch(base + '/games/example/manifest.webmanifest')).headers.get('content-type'), 'application/manifest+json');

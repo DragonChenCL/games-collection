@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { resolve, extname, sep } from 'node:path';
+import { resolve, relative, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
@@ -16,7 +16,10 @@ const server = createServer(async (req, res) => {
     }
     const info = await stat(path);
     if (info.isDirectory()) {
-      if (!pathname.endsWith('/')) { res.writeHead(302, { Location: `${pathname}/` }).end(); return; }
+      if (!pathname.endsWith('/')) {
+        const canonical = relative(root, path).split(sep).map(encodeURIComponent).join('/');
+        res.writeHead(302, { Location: `/${canonical}/` }).end(); return;
+      }
       path = resolve(path, 'index.html');
     }
     const body = await readFile(path);
