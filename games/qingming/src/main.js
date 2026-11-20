@@ -4,14 +4,14 @@ import { Scene } from './scene.js';
 import { relativeMotion } from './eye.js';
 import { RURAL_ACTIVITIES, PARCELS, handOverParcel, markGuide } from './game.js';
 import { startActivity } from './activities.js';
-import { Soundscape } from './audio.js';
+import { Soundscape, AudioActivation } from './audio.js';
 
 const $ = s => document.querySelector(s);
 let stored=null;try{stored=localStorage.getItem(SAVE_KEY);}catch{}
 const state=restoreGame(stored);
 const session=restoreSession(stored),touch=matchMedia('(pointer:coarse)').matches;
 const game={ state, player:{...(session.boat?.player||state.player)}, camera:{x:state.player.x,y:state.player.y+30,zoom:!stored&&touch?1.05:session.zoom}, mode:session.boat?'boat':'walk',boatRun:session.boat,path:[],target:null,particles:[],facing:1,moving:false,following:true,paused:false,time:0 };
-let stamina=100, keys=new Set(), near=null, scene, last=0, lastSave=0, lastHUD=0, toastTimer, soundscape=null, audioContext=null, soundOn=false;
+let stamina=100, keys=new Set(), near=null, scene, last=0, lastSave=0, lastHUD=0, toastTimer, soundscape=null, soundOn=false;
 let stick={x:0,y:0}, sprint=false, dragging=null, dirty=false,autoInteract=null,preferredSound=session.sound,blockedAt=-10;
 Object.assign(game,{view:session.view||'scroll',yaw:session.yaw??Math.PI,pitch:0,fov:1,opening:true});
 
@@ -259,12 +259,18 @@ $('#help').onclick=()=>showDialog('初到汴京，怎样游历？',`<div class="
 $('#journal').onclick=()=>showDialog('行囊 · 一日汴京',`<div class="earned-stamps"><span class="${state.delivered===3?'earned':''}">信</span><span class="${state.boatWon?'earned':''}">舟</span><span class="${state.souvenirs.length===3?'earned':''}">春</span></div><p>街市跑腿：${state.delivered} / 3 份送达<br>汴河拾货：${state.boatWon?'已完成':'待乘舟'}<br>春日拾趣：${state.souvenirs.length} / 3 件小物<br>乡野游艺：${state.rural.length} / 5 项（${state.rural.map(id=>RURAL_ACTIVITIES[id].title).join('、')||'尚未体验'}）<br>探索风物：${state.visited.length} / ${POIS.length} 处<br>行囊铜钱：${state.coins} 文</p><p class="fact">这是对《清明上河图》市井意象的代码重绘，建筑布局与任务均为游戏创作，并非原画的精确测绘。</p>`,[{text:'合上手记'},{text:'重新启程',secondary:true,run:()=>showDialog('重新开始这一日？','<p>将清除这次游历的铜钱、印记与任务进度。此操作无法撤销。</p>',[{text:'保留进度，继续游历'},{text:'确认重新开始',secondary:true,run:()=>{Object.assign(state,newGame());game.mode='walk';game.boatRun=null;game.player={...START};game.path=[];game.target=null;autoInteract=null;game.following=true;stamina=100;save();toast('新的一日，从虹桥开始。');}}])}]);
 $('#fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('#app').requestFullscreen();}catch{toast('当前浏览器不支持全屏，仍可正常游玩。');}};
 function chime(degree) { if(soundOn&&!game.paused&&!document.hidden)soundscape?.cue(degree); }
+const soundActivation=new AudioActivation({preferred:preferredSound,createContext:()=>new (window.AudioContext||window.webkitAudioContext)(),onChange:(active,context)=>{
+  soundOn=active;if(active)soundscape??=new Soundscape(context);
+  soundscape?.update(game.player.x,!game.paused&&!dialog.open&&!document.hidden&&!game.opening,active&&!game.paused&&!document.hidden);
+}});
+function updateSoundButton(){
+  $('#sound').setAttribute('aria-pressed',String(preferredSound));$('#sound').classList.toggle('active',preferredSound);$('#sound').setAttribute('aria-label',preferredSound?'关闭环境音':'开启环境音');
+}
+updateSoundButton();
 $('#sound').onclick=async()=>{
-  try{
-    soundOn=!soundOn;
-    if(soundOn){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error();audioContext??=new Audio();await audioContext.resume();soundscape??=new Soundscape(audioContext);soundscape.update(game.player.x,!dialog.open&&!game.opening,true);chime();}else soundscape?.update(game.player.x,false,false);
-    preferredSound=soundOn;save();$('#sound').setAttribute('aria-pressed',String(soundOn));$('#sound').classList.toggle('active',soundOn);$('#sound').setAttribute('aria-label',soundOn?'关闭环境音':'开启环境音');
-  }catch{soundOn=false;toast('这个浏览器暂时不能播放声音，不影响游玩。');}
+  preferredSound=!preferredSound;updateSoundButton();save();
+  const active=await soundActivation.set(preferredSound);
+  if(preferredSound){if(active)chime();else toast('这个浏览器暂时不能播放声音，不影响游玩。');}
 };
 window.addEventListener('keydown',e=>{
   if(dialog.open||game.opening)return;
@@ -321,7 +327,9 @@ for(const b of document.querySelectorAll('[data-district]'))b.onclick=()=>{
 };
 if(touch){$('#welcome>small').textContent='方向盘行走 · 点人物交谈 · 双指缩放';$('.quest-foot').textContent='上下滑动看目标 · 只指路，不代走或拾取';}
 if(session.boat)toast('已恢复上次的拾货挑战，剩余时间与货箱已保留。');
-document.addEventListener('pointerdown',e=>{if(preferredSound&&!soundOn&&e.target.closest('#sound')===null)$('#sound').click();},{once:true});
+for(const event of ['pointerup','click','keydown'])document.addEventListener(event,e=>{
+  if(e.isTrusted&&preferredSound&&(!soundOn||soundActivation.context?.state!=='running')&&!e.target.closest('#sound'))soundActivation.resume();
+},{capture:true,passive:true});
 
 scene=new Scene(canvas);scene.resize();new ResizeObserver(()=>scene.resize()).observe($('#world'));updateHUD();requestAnimationFrame(frame);
 const intro=document.createElement('dialog');intro.id='scroll-intro';intro.setAttribute('aria-label','清明上河图展卷入场');intro.innerHTML='<button class="intro-skip" type="button">跳过展卷</button><div class="scroll-sheet"><div class="scroll-painting"><canvas width="1600" height="700" aria-hidden="true"></canvas><div class="scroll-title"><small>一卷千年 · 此刻入画</small><h2>清明上河图</h2><p>把脚步交给汴京，把春日收入长卷。</p></div></div></div><button class="intro-enter primary" type="button">展开入画 · 走进汴京</button>';document.body.append(intro);

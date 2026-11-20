@@ -8,6 +8,27 @@ const MOTIFS={
 };
 export const soundRegion=x=>x<5000?'city':x<8000?'yard':x<10700?'fields':x<13000?'temple':x<15300?'fair':'fields';
 
+export class AudioActivation {
+  constructor({preferred=false,createContext,onChange}){
+    this.preferred=preferred;this.createContext=createContext;this.onChange=onChange;this.context=null;this.active=false;
+  }
+  set(enabled){
+    this.preferred=enabled;
+    if(!enabled){this.active=false;this.onChange(false,this.context);return Promise.resolve(false);}
+    return this.resume();
+  }
+  async resume(){
+    if(!this.preferred)return false;
+    try{
+      this.context??=this.createContext();
+      if(this.context.state!=='running')await this.context.resume();
+    }catch{}
+    this.active=this.preferred&&this.context?.state==='running';
+    this.onChange(Boolean(this.active),this.context);
+    return Boolean(this.active);
+  }
+}
+
 export class Soundscape {
   constructor(context){
     this.context=context;this.step=0;this.next=0;this.nextBird=0;this.enabled=false;
