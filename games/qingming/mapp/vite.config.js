@@ -12,9 +12,13 @@ export default defineConfig({
     transform(code, id) {
       // The platform rejects URL fonts; entry.js loads the packaged font with FontFace instead.
       if (id.endsWith('/src/style.css')) return code.replace(/@font-face\{[^}]*\}/g, '');
-      // An IIFE bundle runs every module at load, so the game body becomes a function that
-      // entry.js calls once the save has been read from the platform.
-      if (id.endsWith('/src/main.js')) {
+      if (/\/src\/[^/]+\.js$/.test(id)) {
+        // The platform enforces Trusted Types; html.js builds the nodes without an HTML sink.
+        code = code.replace(/\.innerHTML\s*=(?!=)/g, '.mappHtml=');
+        if (/innerHTML|outerHTML|insertAdjacentHTML/.test(code)) throw Error(`${id}: HTML sink the micro-app build cannot adapt`);
+        if (!id.endsWith('/src/main.js')) return code;
+        // An IIFE bundle runs every module at load, so the game body becomes a function that
+        // entry.js calls once the save has been read from the platform.
         const imports = [], body = [];
         for (const line of code.split('\n')) (/^import\s/.test(line) ? imports : body).push(line);
         if (body.some(line => /^\s*(import|export)\s/.test(line))) throw Error('main.js: unexpected import/export in the game body');

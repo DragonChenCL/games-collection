@@ -1,6 +1,8 @@
 // Discourse micro-app entry: routes saves, the font and fullscreen through the platform SDK, then starts the game.
 import { SAVE_KEY } from '../src/game.js';
 import { startGame } from '../src/main.js';
+import { installHtmlSetter } from './html.js';
+import './mapp.css';
 
 const sdk = globalThis.miniApp ?? null;
 const has = permission => Boolean(sdk?.permissions.has(permission));
@@ -68,6 +70,14 @@ function adaptPage() {
   };
 }
 
+// The platform page hides the console from players, so the failure screen carries the error itself.
+function showFailure(error) {
+  const where = String(error?.stack ?? '').split('\n').find(line => /:\d+:\d+/.test(line))?.trim() ?? '';
+  const box = document.querySelector('#app') ?? document.body;
+  box.textContent = `游戏加载失败，请刷新后重试。\n${error?.name ?? 'Error'}: ${error?.message ?? error}\n${where}`;
+  box.classList.add('load-failure');
+}
+
 async function start() {
   let save = { value: null, readable: true };
   if (sdk) {
@@ -76,12 +86,13 @@ async function start() {
     [save] = await Promise.all([loadSave(), within(font, 3000).catch(() => {})]);
   }
   installStorage(save);
+  installHtmlSetter();
   try {
     startGame();
     adaptPage();
   } catch (error) {
     console.error(error);
-    document.querySelector('#app').textContent = '游戏加载失败，请刷新后重试。';
+    showFailure(error);
   }
   try { await sdk?.lifecycle.ready(); } catch {}
 }
