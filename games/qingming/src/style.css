@@ -17,3 +17,61 @@ dialog{position:fixed;max-width:480px;width:calc(100% - 34px);color:var(--ink);p
 @media(max-height:650px) and (min-width:801px){.topbar{height:65px}.world-caption{top:18px}.world-caption h1{font-size:24px}.quests{top:123px;width:221px}.quest-heading{padding:11px 15px}.quest-row{padding:11px 0}.quest-foot{padding:7px}.map-wrap{bottom:19px}.action-area{bottom:29px}.welcome{bottom:115px;padding:22px 27px}.welcome h2{font-size:22px}.statusbar{height:30px}}
 @media(max-height:600px) and (max-width:800px){.topbar{height:53px}.world-caption{top:15px}.world-caption p{display:none}.quests{top:98px}.map-wrap{bottom:125px}.welcome{bottom:100px;width:310px;padding:17px 20px}.welcome h2{font-size:18px;margin:10px 0}.welcome p{font-size:9px;margin:8px 0 12px}.welcome>small{margin-top:9px}.boat-hud{top:75px;right:64px}.toast{top:14px}.statusbar{height:26px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+
+html,body{height:100%;overflow:hidden}#app{min-height:0!important;height:100dvh}
+#scene{filter:saturate(.64) sepia(.18) contrast(1.04)}
+.era-detail{white-space:nowrap;width:170px;left:-20px}
+.world-caption{padding:8px 12px;background:linear-gradient(100deg,#e9dfc4ed,#e9dfc4b8 75%,transparent);max-width:300px}
+.world-caption p{color:#635e48;font-size:12px}.world-caption>span{color:#66674e}
+.top-tools button{min-width:44px;min-height:44px}.top-tools #fullscreen{font-size:12px}
+.view-tools{width:46px}.view-tools button{width:44px;height:44px;min-height:44px}.view-tools #follow{font-size:12px}
+.quest-heading{min-height:52px}.quest-row b{font-size:14px}.quest-row small{font-size:11px}.quest-foot{font-size:10px}
+.quests.travelling .quest-list,.quests.travelling .quest-foot{display:none}
+.quests.expanded{z-index:6}
+.map-wrap{width:260px}.map-labels{font-size:10px}.map-title small{font-size:10px}
+#atlas-toggle{font-size:11px;min-height:34px;width:100%;border-top:1px solid var(--line);margin-top:5px;text-align:left}
+#district-links{display:grid;grid-template-columns:1fr 1fr;gap:3px;max-height:210px;overflow:auto;touch-action:pan-y}
+#district-links button{font-size:12px;min-height:44px;background:#e1d4b847;padding:5px}
+.toast{top:auto;bottom:125px;font-size:12px;max-width:calc(100% - 32px);z-index:7}
+.boat-hud{top:10px;left:50%;right:auto;transform:translateX(-50%);width:580px;min-width:0;padding:7px 10px;display:flex;align-items:center;gap:10px;pointer-events:none}
+.boat-hud>span{font-size:12px;white-space:nowrap;flex-shrink:0}.boat-hud>strong{font-size:25px;margin:0;flex-shrink:0}.boat-hud>small{font-size:11px;white-space:nowrap;flex-shrink:0}.boat-hud>button{font-size:11px;min-height:44px;padding:4px 8px;pointer-events:auto;border-left:1px solid var(--line);white-space:nowrap}
+.boating .quests,.boating .purse,.boating .world-caption{display:none}
+.boating .map-wrap{opacity:.95}.interact{font-size:13px;min-height:48px}.interact:disabled{font-size:11px}
+dialog{backdrop-filter:none;background:#f4ecd8}dialog::backdrop{backdrop-filter:none;background:#41432d66}
+dialog p{font-size:14px}dialog .fact{font-size:12px}.controls-guide p{font-size:13px}
+.dialog-close{width:44px;height:44px;top:3px;right:3px}#dialog-actions button{font-size:13px;min-height:48px}
+.welcome>small{font-size:12px}.statusbar,.statusbar a{font-size:11px}
+@media(max-width:1024px),(pointer:coarse){
+  .touch-controls{display:flex;position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:max(14px,env(safe-area-inset-left));align-items:flex-end;gap:9px;z-index:4}
+  .dpad{width:132px;height:132px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);background:#f2ead4cc;border:1px solid #ad9d6c77;border-radius:50%;padding:0;touch-action:none;user-select:none}
+  .dpad button{font:24px Georgia;width:44px;height:44px;padding:0;touch-action:none;user-select:none}
+  .dpad button.held{background:#aa8b5739;border-radius:12px}.dpad button:nth-child(1){grid-area:1/2}.dpad button:nth-child(2){grid-area:2/1}.dpad span{grid-area:2/2;display:grid;place-content:center;font-size:14px;color:#9b8965;pointer-events:none}.dpad button:nth-child(4){grid-area:2/3}.dpad button:nth-child(5){grid-area:3/2}
+  #sprint{width:48px;height:52px;min-height:44px;border:1px solid #ad9d6c66;background:#f2ead4dc;border-radius:50%;padding:4px;font-size:12px;touch-action:none;user-select:none;margin-bottom:4px}
+  .top-tools{gap:2px}.top-tools button{min-width:44px;padding:7px}.top-tools button span{display:none}
+  .view-tools{right:max(10px,env(safe-area-inset-right));width:46px;top:75px}.view-tools button{width:44px;height:44px}
+  .action-area{bottom:max(32px,env(safe-area-inset-bottom));left:auto;right:max(12px,env(safe-area-inset-right));transform:none}.interact{max-width:180px;padding:12px;font-size:12px}.interact:disabled{font-size:11px;max-width:155px}.interact kbd{display:none}.move-hint{display:none}
+  .map-wrap{width:190px;right:12px;bottom:155px}.map-labels{font-size:9px}#atlas-toggle{min-height:44px;font-size:11px}
+  .quests{width:190px}.quest-row small{font-size:10px}.quest-row b{font-size:12px}.quest-heading small{font-size:10px}
+  .quest-list,.quest-foot{display:none}.quests.expanded .quest-list,.quests.expanded .quest-foot{display:block}
+  .boat-hud{top:8px;right:auto;left:10px;transform:none;width:calc(100% - 78px);padding:5px 8px;gap:7px;flex-wrap:wrap}.boat-hud>span{font-size:12px}.boat-hud>strong{font-size:24px}.boat-hud>small{display:none}.boat-hud>button{font-size:11px;flex:1;padding:3px;min-height:44px}
+  .toast{top:auto;bottom:165px;left:14px;transform:translateY(8px);width:calc(100% - 28px);font-size:12px;padding:10px 12px}.toast.visible{transform:none}
+  .statusbar{height:38px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));font-size:10px}.statusbar a{min-height:36px;display:flex;align-items:center;font-size:10px}#save-status{display:none}
+  .welcome{top:50%;bottom:auto;transform:translate(-50%,-50%);max-height:95%;overflow:auto;width:min(360px,calc(100% - 30px));padding:20px}.welcome>small{font-size:11px}.welcome p{font-size:12px}.welcome .primary{min-height:48px;font-size:13px}
+  dialog p{font-size:14px}dialog .fact{font-size:12px}.dialog-close{width:44px;height:44px}
+}
+@media(max-width:600px){
+  .topbar{height:64px;padding:0 max(10px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}.brand{font-size:17px;letter-spacing:1px;gap:8px}.brand small{font-size:7px;letter-spacing:1px}.top-tools{gap:0}.top-tools button{font-size:22px;min-width:42px}.top-tools #fullscreen{display:none}
+  .world-caption{left:10px;top:10px;padding:7px 8px;max-width:210px}.world-caption>span{font-size:9px}.world-caption h1{font-size:23px;margin:5px 0}.world-caption p{font-size:10px}
+  .purse{right:12px;top:14px;padding:8px}.purse strong{font-size:17px}.purse>span{font-size:11px}.purse .energy{width:26px}
+  .quests{top:118px;left:12px;width:178px}.quest-heading{font-size:12px;padding:10px}.quest-heading small{font-size:10px;letter-spacing:0}.quest-heading>span:last-child{font-size:18px}
+  .map-wrap{width:168px;padding:7px;bottom:154px}#minimap{height:40px}.map-title{font-size:11px}.map-title small{display:none}.map-labels{font-size:8px}#atlas-toggle{font-size:10px}
+  .statusbar{height:36px}.statusbar a{font-size:10px}.statusbar>span:first-child{display:none}.interact{max-width:155px;font-size:11px}.interact:disabled{max-width:141px;font-size:10px}
+  .toast{bottom:315px;font-size:11px}.boating .toast{bottom:150px}.boating .map-wrap{display:none}.boat-hud{gap:5px}.boat-hud>button{font-size:10px}.boat-hud>span{font-size:11px}.boat-hud>strong{font-size:20px}
+}
+@media(max-height:500px){
+  .topbar{height:48px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}.brand{font-size:17px}.brand small{font-size:7px;margin-top:2px}.seal{font-size:11px;padding:3px 5px}.era{display:none}.statusbar{height:27px}.statusbar a{min-height:26px}
+  .world-caption{top:8px;left:12px;padding:4px 7px}.world-caption>span,.world-caption p{display:none}.world-caption h1{font-size:22px;margin:2px 0}.quests{left:12px;top:57px;width:175px}.quest-heading{padding:8px 10px;min-height:46px}.quest-heading small{display:none}.quest-list,.quest-foot{display:none}.quests.expanded .quest-list{max-height:130px;overflow:auto}.quests.expanded .quest-foot{display:none}
+  .purse{top:8px;right:69px;padding:7px 10px}.view-tools{top:8px;right:12px}.view-tools button{width:44px;height:44px}.view-tools>span{display:none}
+  .map-wrap{bottom:12px;right:205px;width:200px;padding:5px}#minimap{height:32px}.map-labels,.map-title small{display:none}#atlas-toggle{min-height:32px;font-size:10px}.map-title{font-size:10px}#district-links{position:absolute;right:0;bottom:100%;width:260px;max-height:190px;background:#f4ecd8;border:1px solid var(--line)}
+  .touch-controls{display:flex;bottom:8px}.dpad{width:132px;height:132px}.action-area{bottom:17px;right:12px}.interact{max-width:185px}.welcome{top:50%;bottom:auto;max-height:95%;padding:15px 20px;width:360px}.welcome h2{font-size:21px;margin:8px 0}.welcome p{font-size:11px;line-height:1.6;margin:7px 0}.welcome .eyebrow{font-size:10px}.welcome>small{font-size:10px;margin-top:8px}.welcome .primary{min-height:44px}.toast{bottom:12px;left:205px;max-width:calc(100% - 430px);font-size:11px;padding:8px}.boat-hud{top:7px;left:12px;width:calc(100% - 82px);padding:3px 8px}.boating .map-wrap{display:none}.boating .toast{bottom:85px;left:205px;max-width:calc(100% - 300px)}
+}

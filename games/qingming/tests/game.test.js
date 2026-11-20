@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { START, BRIDGE, POIS, SOUVENIRS, CARGO, nodes, edges, newGame, restoreGame, route, nearestRoad, walkable, riverY, roadY, bridgeLift, stampCount, distance, boatWithinRiver, clamp } from '../src/game.js';
+import { WORLD, BRIDGES, DISTRICTS, districtAt, nearestSouvenir, stepAlongRoad, restoreSession } from '../src/game.js';
 
 test('new journeys are independent and start on a walkable road beside the bridge',()=>{
   const a=newGame();a.souvenirs.push('s0');a.player.x=100;
@@ -59,3 +60,30 @@ test('each completed activity contributes exactly one stamp',()=>{
   const s=newGame();s.delivered=3;assert.equal(stampCount(s),1);s.boatWon=true;assert.equal(stampCount(s),2);s.souvenirs=SOUVENIRS.map(s=>s.id);assert.equal(stampCount(s),3);
 });
 test('numeric clamping respects both boundaries',()=>{assert.equal(clamp(-4,0,1),0);assert.equal(clamp(9,0,1),1);assert.equal(clamp(.4,0,1),.4);});
+test('the extended handscroll has ten districts, and all three bridges are usable',()=>{
+  assert.equal(WORLD.width,18000);assert.equal(DISTRICTS.length,10);assert.equal(BRIDGES.length,3);
+  for(const district of DISTRICTS)assert.equal(districtAt(district.x).name,district.name);
+  for(const bridge of BRIDGES){
+    const path=route({x:bridge.a.x-100,y:roadY(bridge.a.x-100)},{x:bridge.b.x+100,y:roadY(bridge.b.x+100,1)});
+    assert.ok(path.some(p=>distance(p,bridge.a)<1));assert.ok(path.some(p=>distance(p,bridge.b)<1));
+  }
+  assert.ok(boatWithinRiver({x:17000,y:riverY(17000)}));
+});
+test('holding west follows curved streets without an invisible wall',()=>{
+  let p={x:2200,y:roadY(2200)-48};
+  for(let i=0;i<200;i++){const previous=p;p=stepAlongRoad(p,-1,0,3);assert.ok(walkable(p));assert.ok(distance(previous,p)>0);}
+  assert.ok(p.x<1700);
+});
+test('spring navigation chooses the nearest remaining item by walking distance',()=>{
+  assert.equal(nearestSouvenir({x:800,y:roadY(800)},[]).id,'s2');
+  assert.equal(nearestSouvenir({x:4200,y:roadY(4200)},[]).id,'s1');
+  assert.equal(nearestSouvenir(START,SOUVENIRS.map(p=>p.id)),undefined);
+});
+test('boat refresh preserves remaining time, cargo, position and preferences',()=>{
+  const b={remaining:44,collected:[0,1],player:{x:4100,y:riverY(4100)}};
+  const restored=restoreSession(JSON.stringify({version:2,activeBoat:b,preferences:{zoom:1.3,sound:true}}));
+  assert.equal(restored.zoom,1.3);assert.equal(restored.sound,true);assert.equal(restored.boat.remaining,44);assert.deepEqual(restored.boat.collected,[0,1]);assert.deepEqual(restored.boat.player,b.player);
+  assert.equal(restoreSession('{broken').boat,null);
+  assert.equal(restoreSession(JSON.stringify({version:2,activeBoat:{...b,remaining:0}})).boat,null);
+  assert.equal(restoreSession(JSON.stringify({version:2,activeBoat:{...b,player:{x:4100,y:0}}})).boat,null);
+});

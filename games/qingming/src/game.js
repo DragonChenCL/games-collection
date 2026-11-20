@@ -1,10 +1,25 @@
-export const WORLD = { width: 6000, height: 1700 };
+export const WORLD = { width: 18000, height: 1700 };
 export const SAVE_KEY = 'ruhua-live-v2';
 export const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const riverY = x => 920 + Math.sin(x / 880) * 95 + Math.sin(x / 410) * 24;
 export const roadY = (x, bank = 0) => riverY(x) + (bank ? 300 : -270);
-export const BRIDGE = { a: { x: 3000, y: roadY(3000) }, b: { x: 3200, y: roadY(3200, 1) } };
+export const BRIDGE = { a: { x: 2800, y: roadY(2800) }, b: { x: 3600, y: roadY(3600, 1) } };
+export const BRIDGES = [BRIDGE, ...[9000,15000].map(x=>({a:{x,y:roadY(x)},b:{x:x+800,y:roadY(x+800,1)}}))];
+export const BRIDGE_HEIGHT = 150;
+export const DISTRICTS = [
+  {x:480,name:'城阙晨声',note:'城门初开，商旅络绎。'},
+  {x:1800,name:'汴京街市',note:'茶烟酒旆，一街人间。'},
+  {x:3100,name:'虹桥渡口',note:'木拱如虹，百业过桥。'},
+  {x:4200,name:'汴河舟影',note:'货船卸帆，渔火未眠。'},
+  {x:5400,name:'柳陌春田',note:'村头春水，陌上新桑。'},
+  {x:7100,name:'船坞匠作',note:'斧凿相和，巨木成舟。'},
+  {x:9100,name:'水磨田庄',note:'水轮不歇，麦浪成行。'},
+  {x:12000,name:'竹林古刹',note:'疏钟入竹，曲径通幽。'},
+  {x:14600,name:'村社春集',note:'布棚开市，百戏迎春。'},
+  {x:17100,name:'远郊踏青',note:'牛羊缓行，纸鸢入云。'},
+];
+export const districtAt = x => DISTRICTS.reduce((best,d)=>Math.abs(d.x-x)<Math.abs(best.x-x)?d:best);
 export const POIS = [
   { id: 'post', name: '汴京驿使', label: '接取跑腿', x: 3000, y: roadY(3000), color: '#a24d38', type: 'courier' },
   { id: 'tea', name: '刘家茶坊', label: '第一份 · 新茶', x: 2000, y: roadY(2000), color: '#617b69', type: 'shop' },
@@ -14,6 +29,11 @@ export const POIS = [
   { id: 'gate', name: '汴京城门', label: '入城瞧瞧', x: 480, y: roadY(480), color: '#8a7657', type: 'sight' },
   { id: 'fields', name: '郊外春田', label: '春风十里', x: 5250, y: roadY(5250), color: '#6e8152', type: 'sight' },
   { id: 'temple', name: '河畔小庙', label: '过桥寻幽', x: 2300, y: roadY(2300, 1), color: '#8a7657', type: 'sight' },
+  { id: 'shipyard', name: '汴东船坞', label: '看匠人造船', x: 6900, y: roadY(6900), color: '#86724e', type: 'sight' },
+  { id: 'mill', name: '河湾水磨', label: '听水轮转动', x: 8700, y: roadY(8700), color: '#6c826c', type: 'sight' },
+  { id: 'grove', name: '竹林古刹', label: '竹下听钟', x: 12000, y: roadY(12000,1), color: '#6a7f65', type: 'sight' },
+  { id: 'fair', name: '村社春集', label: '看百戏赶集', x: 14500, y: roadY(14500), color: '#a16b4d', type: 'sight' },
+  { id: 'outing', name: '远郊踏青', label: '寻一缕春风', x: 17100, y: roadY(17100), color: '#74825d', type: 'sight' },
 ];
 export const SOUVENIRS = [
   { id: 's0', x: 2480, y: roadY(2480, 1) - 18, name: '燕子纸鸢' },
@@ -31,7 +51,7 @@ export function restoreGame(raw) {
     const p = JSON.parse(raw);
     if(p?.version !== 2) return fresh;
     return { ...fresh,
-      player: Number.isFinite(p.player?.x) && Number.isFinite(p.player?.y) ? nearestRoad({ x: clamp(p.player.x, 200, 5800), y: clamp(p.player.y, 0, 1700) }).point : { ...START },
+      player: Number.isFinite(p.player?.x) && Number.isFinite(p.player?.y) ? nearestRoad({ x: clamp(p.player.x, 200, WORLD.width-200), y: clamp(p.player.y, 0, WORLD.height) }).point : { ...START },
       coins: Number.isFinite(p.coins) ? clamp(Math.floor(p.coins), 0, 9999) : 0,
       pickedCoins: [...new Set((Array.isArray(p.pickedCoins) ? p.pickedCoins : []).filter(id => COINS.some(c => c.id === id)))],
       souvenirs: [...new Set((Array.isArray(p.souvenirs) ? p.souvenirs : []).filter(id => SOUVENIRS.some(c => c.id === id)))],
@@ -50,21 +70,53 @@ export function project(point, a, b) {
 }
 export const nodes = [];
 export const edges = [];
+export const BANK_NODES = (WORLD.width-400)/200+1;
 for(let bank = 0; bank < 2; bank++) {
-  for(let i=0;i<29;i++) {
+  for(let i=0;i<BANK_NODES;i++) {
     const x=200+i*200, n=nodes.length;
     nodes.push({x,y:roadY(x,bank)});
     if(i>0) edges.push([n-1,n]);
   }
 }
-edges.push([14,44]);
-nodes.push({x:3600,y:roadY(3600)+100}); edges.push([17,58]);
+for(const bridge of BRIDGES)edges.push([(bridge.a.x-200)/200,BANK_NODES+(bridge.b.x-200)/200]);
+const dockNode=nodes.length;nodes.push({x:3600,y:roadY(3600)+100}); edges.push([17,dockNode]);
 export function nearestRoad(point) {
   let best = { distance: Infinity };
   for (const edge of edges) { const p = project(point,nodes[edge[0]],nodes[edge[1]]); if(p.distance<best.distance)best={...p,edge}; }
   return best;
 }
 export function walkable(point) { return nearestRoad(point).distance <= 49; }
+export function stepAlongRoad(from,dx,dy,amount) {
+  const len=Math.hypot(dx,dy);if(!len)return {...from};
+  const next={x:from.x+dx/len*amount,y:from.y+dy/len*amount};
+  if(walkable(next))return next;
+  const current=nearestRoad(from),projected=nearestRoad(next).point;
+  // Slide around a bend instead of trapping horizontal input on the road edge.
+  if(distance(from,projected)<=amount*1.5)return projected;
+  const advance=distance(current.point,projected);
+  if(advance<.01||advance>amount*1.2)return {...from};
+  const offset={x:from.x-current.point.x,y:from.y-current.point.y},scale=47/Math.max(47,current.distance);
+  return {x:projected.x+offset.x*scale,y:projected.y+offset.y*scale};
+}
+export function nearestSouvenir(from,owned) {
+  return SOUVENIRS.filter(p=>!owned.includes(p.id)).map(p=>{
+    let previous=from,length=0;for(const point of route(from,p)){length+=distance(previous,point);previous=point;}
+    return {p,length};
+  }).sort((a,b)=>a.length-b.length)[0]?.p;
+}
+export function restoreSession(raw) {
+  const result={zoom:.75,sound:false,boat:null};
+  try{
+    const p=JSON.parse(raw);if(p?.version!==2)return result;
+    if(Number.isFinite(p.preferences?.zoom))result.zoom=clamp(p.preferences.zoom,.46,2.2);
+    result.sound=p.preferences?.sound===true;
+    const b=p.activeBoat;
+    if(b&&Number.isFinite(b.remaining)&&b.remaining>0&&Number.isFinite(b.player?.x)&&Number.isFinite(b.player?.y)&&boatWithinRiver(b.player)){
+      result.boat={player:{x:b.player.x,y:b.player.y},remaining:clamp(b.remaining,0,90),collected:[...new Set((Array.isArray(b.collected)?b.collected:[]).filter(id=>CARGO.some(c=>c.id===id)))],cooldown:3,boost:0};
+    }
+  }catch{}
+  return result;
+}
 export function route(from, to) {
   const a = nearestRoad(from), b = nearestRoad(to);
   if(a.edge[0]===b.edge[0] && a.edge[1]===b.edge[1])return [b.point];
@@ -82,8 +134,11 @@ export function route(from, to) {
   return [a.point,...path,b.point];
 }
 export function bridgeLift(p) {
-  const projection=project(p,BRIDGE.a,BRIDGE.b);
-  return projection.distance<80 ? Math.sin(projection.t*Math.PI)*76 : 0;
+  for(const bridge of BRIDGES){
+    const projection=project(p,bridge.a,bridge.b);
+    if(projection.distance<80)return Math.sin(projection.t*Math.PI)*BRIDGE_HEIGHT;
+  }
+  return 0;
 }
 export function stampCount(s) { return Number(s.delivered===3)+Number(s.boatWon)+Number(s.souvenirs.length===3); }
-export function boatWithinRiver(p) { return p.x >= 250 && p.x <= 5750 && Math.abs(p.y-riverY(p.x)) <= 111; }
+export function boatWithinRiver(p) { return p.x >= 250 && p.x <= WORLD.width-250 && Math.abs(p.y-riverY(p.x)) <= 111; }
