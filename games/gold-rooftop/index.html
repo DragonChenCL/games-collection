@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d0b1e" />
+    <meta name="description" content="实时金价下，不同价位买入黄金的人该站在几层天台。纯属玩梗。" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <title>黄金天台模拟器</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="back" href="../../">← 闲游合集</a>
+      <h1>黄金天台模拟器<small>亏 1% = 上 1 层</small></h1>
+      <div class="hud">
+        <div class="box"><div class="k">现货金 美元/盎司</div><div class="v" id="usdOz">--</div></div>
+        <div class="box"><div class="k">折合 元/克</div><div class="v" id="cnyG">--</div></div>
+        <div class="box"><div class="k">美元兑人民币</div><div class="v" id="fx">--</div></div>
+        <div class="box"><div class="k">状态</div><div class="v" id="status" style="font-size:14px;line-height:1.5">连接中…</div></div>
+      </div>
+      <div class="stage"><canvas id="cv"></canvas></div>
+      <div class="ctrl">
+        <input id="price" type="number" min="1" step="0.01" placeholder="买入价 元/克">
+        <input id="name" type="text" maxlength="6" placeholder="昵称（可选）">
+        <button id="add">上天台</button>
+        <button id="reset" class="ghost">恢复默认</button>
+      </div>
+      <table>
+        <thead><tr><th>玩家</th><th>买入价 元/克</th><th>每克盈亏</th><th>盈亏</th><th>位置</th><th>称号</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="note">国内配色：红涨绿跌。克价为国际现货价按汇率折算（1 盎司 = 31.1035 克），不含国内溢价与金店工费；金价每 10 秒刷新，汇率为每日参考价。<br>纯属玩梗，亏了也别真上天台，下来吃顿火锅。投资有风险。</p>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
