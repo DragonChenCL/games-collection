@@ -74,6 +74,10 @@ test('holding west follows curved streets without an invisible wall',()=>{
   for(let i=0;i<200;i++){const previous=p;p=stepAlongRoad(p,-1,0,3);assert.ok(walkable(p));assert.ok(distance(previous,p)>0);}
   assert.ok(p.x<1700);
 });
+test('holding east passes the dock spur rather than dead-ending on its side',()=>{
+  let p={...START};for(let i=0;i<1000;i++){p=stepAlongRoad(p,1,0,3);assert.ok(walkable(p));}
+  assert.ok(p.x>5600);
+});
 test('spring navigation chooses the nearest remaining item by walking distance',()=>{
   assert.equal(nearestSouvenir({x:800,y:roadY(800)},[]).id,'s2');
   assert.equal(nearestSouvenir({x:4200,y:roadY(4200)},[]).id,'s1');
@@ -86,4 +90,10 @@ test('boat refresh preserves remaining time, cargo, position and preferences',()
   assert.equal(restoreSession('{broken').boat,null);
   assert.equal(restoreSession(JSON.stringify({version:2,activeBoat:{...b,remaining:0}})).boat,null);
   assert.equal(restoreSession(JSON.stringify({version:2,activeBoat:{...b,player:{x:4100,y:0}}})).boat,null);
+});
+test('only Rainbow Bridge uses the high arch; stone and timber crossings have matching elevations',()=>{
+  assert.deepEqual(BRIDGES.map(b=>b.kind),['rainbow','stone','timber']);
+  assert.deepEqual(BRIDGES.map(b=>b.height),[150,52,0]);
+  for(const b of BRIDGES)assert.ok(Math.abs(bridgeLift({x:(b.a.x+b.b.x)/2,y:(b.a.y+b.b.y)/2})-b.height)<.001);
+  assert.equal(DISTRICTS.find(d=>d.name==='竹林古刹').bank,1);
 });

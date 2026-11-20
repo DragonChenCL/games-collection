@@ -3,6 +3,18 @@ function line(c,pts,color=INK,w=.8){c.beginPath();pts.forEach(([x,y],i)=>i?c.lin
 function shape(c,pts,fill,stroke=INK,w=.65){c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke();}}
 function oval(c,x,y,rx,ry,fill,stroke){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=.65;c.stroke();}}
 export const OCCUPATIONS=['traveller','porter','scholar','woman','farmer','monk','merchant','guard','child','elder','hawker','fisher'];
+export class FigureCache {
+  constructor(){this.frames=new Map();}
+  get(p,t){
+    const phase=p.moving?Math.floor(t*6)%4:0,seed=Math.floor(p.seed||0)%12,key=[p.role,p.color,p.hat,p.basket,seed,p.dir,phase].join('|');
+    if(!this.frames.has(key)){
+      const canvas=document.createElement('canvas');canvas.width=120;canvas.height=100;
+      drawFigure(canvas.getContext('2d'),{...p,x:60,y:88,seed},phase*Math.PI/16);
+      this.frames.set(key,canvas);if(this.frames.size>600)this.frames.delete(this.frames.keys().next().value);
+    }
+    return this.frames.get(key);
+  }
+}
 export function drawFigure(c,p,t,player=false){
   const role=player?'traveller':p.role||OCCUPATIONS[Math.abs(Math.floor(p.seed||0))%OCCUPATIONS.length];
   const dir=p.dir||1, moving=p.moving, phase=t*(p.role==='child'?12:8)+(p.seed||0),step=moving?Math.sin(phase):0;
