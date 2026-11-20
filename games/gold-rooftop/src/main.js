@@ -10,7 +10,7 @@ let cur = null, lastDir = 0;
 function load() {
   try {
     const a = JSON.parse(localStorage.getItem(KEY)).filter(p => p && p.price > 0).map(p => ({ price: +p.price, name: String(p.name || '').slice(0, 6) }));
-    if (a.length) return a;
+    return a;
   } catch (e) {}
   return DEFAULTS.map(d => ({ ...d }));
 }
