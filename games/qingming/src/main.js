@@ -282,7 +282,7 @@ $('#atlas-toggle').onclick=()=>{$('#district-links').hidden=!$('#district-links'
 for(const b of document.querySelectorAll('[data-district]'))b.onclick=()=>{
   if(game.mode==='boat'){toast('请先回码头，再游历城郊。');return;}
   const district=DISTRICTS[Number(b.dataset.district)],p={x:district.x,y:roadY(district.x,district.bank||0)};
-  $('#district-links').hidden=true;
+  $('#district-links').hidden=true;$('#app').classList.remove('atlas-open');
   showDialog(`远游 · ${district.name}`,`<p>${district.note}</p><p>沿街步行可自由看风景；也可花 <b>12 文雇车</b>，直接到达这一景。</p>`,[{text:'沿街步行前往',run:()=>goto(p)},{text:state.coins>=12?'雇车前往 · 12 文':'雇车需 12 文',secondary:true,run:()=>{if(state.coins<12){toast('铜钱不足，沿街步行不花钱。');return;}state.coins-=12;game.player={...p};game.path=[];game.target=null;autoInteract=null;game.following=true;game.camera.x=p.x;game.camera.y=p.y+30;save();toast(`车马已到${district.name}。`);}}]);
 };
 if(touch){$('#welcome>small').textContent='方向盘行走 · 点人物交谈 · 双指缩放';$('.quest-foot').textContent='点选目标自动前往；到达后交谈。';}

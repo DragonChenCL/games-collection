@@ -97,6 +97,8 @@ dialog p{font-size:14px}dialog .fact{font-size:12px}.controls-guide p{font-size:
   .quests.expanded{top:106px;left:12px;bottom:165px;width:calc(100% - 84px);max-height:calc(100% - 271px);display:flex;flex-direction:column}
   .quests.expanded .quest-list{overflow:auto;min-height:0;touch-action:pan-y;scrollbar-width:thin}
   .quests.expanded .quest-foot{display:none}.quest-row{min-height:65px}.quest-row small{font-size:12px}
+  .quests.expanded~.map-wrap{bottom:96px}
+  .quests.expanded~.map-wrap .map-title,.quests.expanded~.map-wrap #minimap{display:none}
   #district-links{position:absolute;right:48px;bottom:0;width:min(280px,calc(100vw - 84px));max-height:min(350px,calc(100dvh - 340px));background:#f4ecd8;border:1px solid var(--line);z-index:8}
   .atlas-open .quests{display:none}.map-labels{display:none}#atlas-toggle{font-size:12px}
   .toast{top:auto;bottom:148px;max-width:calc(100% - 28px)}
