@@ -10,7 +10,7 @@ export function cnyPerGram(usdOz, usdCny) {
 // 亏 1% 上 1 层；只要亏了就至少站 1 层。
 export function standing(buyPrice, currentPrice) {
   const pct = (currentPrice - buyPrice) / buyPrice * 100;
-  return { pct, diff: currentPrice - buyPrice, floors: pct < 0 ? Math.max(1, Math.floor(-pct)) : 0 };
+  return { pct, diff: currentPrice - buyPrice, floors: pct < 0 ? Math.max(1, Math.floor(-pct + 1e-9)) : 0 };
 }
 
 export function rank({ pct, floors }) {

@@ -11,6 +11,7 @@ test('one floor per percent lost, at least one floor for any loss', () => {
   assert.equal(standing(800, 799.9).floors, 1);
   assert.equal(standing(800, 792).floors, 1);
   assert.equal(standing(800, 784).floors, 2);
+  assert.equal(standing(1001, 980.98).floors, 2);
   assert.equal(standing(800, 800).floors, 0);
   assert.equal(standing(700, 770).floors, 0);
   assert.equal(standing(700, 770).pct.toFixed(1), '10.0');
