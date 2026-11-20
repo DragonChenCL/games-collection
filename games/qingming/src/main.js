@@ -164,7 +164,7 @@ function tick(dt) {
     else if(game.path.length){
       let budget=speed*dt;
       while(game.path.length&&budget>0){const p=game.path[0],d=distance(p,game.player);if(d<=budget){game.player={...p};budget-=d;game.path.shift();}else{game.facing=Math.sign(p.x-game.player.x)||game.facing;game.player.x+=(p.x-game.player.x)/d*budget;game.player.y+=(p.y-game.player.y)/d*budget;budget=0;}game.moving=true;}
-      if(!game.path.length){game.target=null;if(autoInteract&&nearest()?.id===autoInteract)interact();autoInteract=null;}dirty=true;
+      if(!game.path.length){game.target=null;const arrived=autoInteract;autoInteract=null;if(arrived&&nearest()?.id===arrived)interact();}dirty=true;
     }
     for(const coin of COINS)if(!state.pickedCoins.includes(coin.id)&&distance(coin,game.player)<24){state.pickedCoins.push(coin.id);state.coins++;burst(coin);dirty=true;}
     for(const p of POIS)if(!state.visited.includes(p.id)&&distance(p,game.player)<130){state.visited.push(p.id);dirty=true;}
