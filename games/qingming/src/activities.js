@@ -30,13 +30,13 @@ export function startActivity(p,{state,showDialog,chime,save,updateHUD}){
     resultGuard=()=>{if(elapsed>=shownUntil)$('#activity-sequence').textContent='请按刚才的顺序点钟';};
   }
   if(activity.kind==='cups'){
-    const positions=[0,1,2],buttons=[...document.querySelectorAll('[data-cup]')];
+    const positions=[0,1,2],buttons=[...document.querySelectorAll('[data-cup]')];let guessed=false;
     resultGuard=()=>{
       if(elapsed>1.2&&$('#activity-bean'))$('#activity-bean').hidden=true;
       if(elapsed>1.5+stage*.75&&stage<5){const a=stage%3,b=(a+1+Math.floor(Math.random()*2))%3;[positions[a],positions[b]]=[positions[b],positions[a]];stage++;buttons.forEach((b,i)=>b.style.transform=`translateX(${positions[i]*100}%)`);}
-      if(elapsed>5.5)buttons.forEach(b=>b.disabled=false);
+      if(elapsed>5.5&&!guessed)buttons.forEach(b=>b.disabled=false);
     };
-    buttons.forEach((b,i)=>{b.style.transform=`translateX(${i*100}%)`;b.onclick=()=>{if(i===0)complete();else{result('红豆溜走了，再看清一次换位吧。');buttons.forEach(b=>b.disabled=true);$('#activity-again').hidden=false;}};});
+    buttons.forEach((b,i)=>{b.style.transform=`translateX(${i*100}%)`;b.onclick=()=>{if(b.disabled||guessed)return;guessed=true;buttons.forEach(b=>b.disabled=true);if(i===0)complete();else{result('红豆溜走了，再看清一次换位吧。');$('#activity-again').hidden=false;}};});
     $('#activity-again').onclick=()=>startActivity(p,{state,showDialog,chime,save,updateHUD});
   }
   if(activity.kind==='kite'){
