@@ -1,6 +1,7 @@
 // Discourse micro-app entry: routes saves, the font and fullscreen through the platform SDK, then starts the game.
 import { SAVE_KEY } from '../src/game.js';
 import { startGame } from '../src/main.js';
+import { installHtmlSetter } from './html.js';
 import './mapp.css';
 
 const sdk = globalThis.miniApp ?? null;
@@ -77,13 +78,6 @@ function showFailure(error) {
   box.classList.add('load-failure');
 }
 
-// The game builds its UI from HTML strings; where the host enforces Trusted Types this lets them through.
-function allowHtmlStrings() {
-  try {
-    if (globalThis.trustedTypes && !trustedTypes.defaultPolicy) trustedTypes.createPolicy('default', { createHTML: html => html });
-  } catch (error) { console.warn('[qingming] trusted types policy unavailable', error); }
-}
-
 async function start() {
   let save = { value: null, readable: true };
   if (sdk) {
@@ -92,7 +86,7 @@ async function start() {
     [save] = await Promise.all([loadSave(), within(font, 3000).catch(() => {})]);
   }
   installStorage(save);
-  allowHtmlStrings();
+  installHtmlSetter();
   try {
     startGame();
     adaptPage();
