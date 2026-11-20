@@ -29,7 +29,12 @@ function installStorage({ value, readable }) {
       const entry = pending;
       pending = null;
       try { await sdk.localStorage.setItem(...entry); failed = false; }
-      catch (error) { console.warn('[qingming] save failed', error); failed = true; pending ??= entry; break; }
+      catch (error) {
+        console.warn('[qingming] save failed', error);
+        failed = true;
+        // A newer save queued meanwhile is tried right away; otherwise keep this one for the next save.
+        if (!pending) { pending = entry; break; }
+      }
     }
     writing = false;
   }
