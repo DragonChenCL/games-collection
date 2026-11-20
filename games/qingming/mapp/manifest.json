@@ -3,7 +3,7 @@
   "id": "01a1f807-1c5e-7463-ae81-8614d1eee4e8",
   "name": "入画 · 清明上河图",
   "tags": ["游戏", "休闲", "国风"],
-  "version": "1.0.2",
+  "version": "1.0.3",
   "entry": "index.html",
   "script": "app.js",
   "style": "app.css",
