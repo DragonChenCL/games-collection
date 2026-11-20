@@ -39,7 +39,7 @@ try { welcomed = sessionStorage.getItem('ruhua-welcomed') === '1'; } catch {}
 
 document.querySelector('#app').innerHTML = `
   <header class="topbar">
-    <a href="/" class="brand" aria-label="入画首页"><span class="brand-seal">入<br>画</span><span class="brand-name">清明上河图<small>A LIVING HANDSCROLL</small></span></a>
+    <a href="../../" class="brand" aria-label="游戏合集首页"><span class="brand-seal">入<br>画</span><span class="brand-name">清明上河图<small>A LIVING HANDSCROLL</small></span></a>
     <nav class="main-nav" aria-label="主导航"><button class="nav-active" id="explore">画卷漫游</button><button id="journal">汴京手记 <span id="nav-count">${state.completed.length}/3</span></button></nav>
     <div class="header-tools"><span class="era">北宋<span>·</span>汴京</span><button class="icon-button" id="sound" aria-label="开启环境音乐" title="环境音乐">${icon('mute')}</button><button class="icon-button" id="help" aria-label="游玩指南">${icon('help')}</button><button class="icon-button fullscreen-button" id="fullscreen" aria-label="切换全屏">${icon('full')}</button></div>
   </header>
