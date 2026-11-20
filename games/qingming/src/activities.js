@@ -48,7 +48,7 @@ export function startActivity(p,{state,showDialog,chime,save,updateHUD}){
   function frame(now){
     if(!active())return;const dt=Math.min(.1,(now-previous)/1000);previous=now;elapsed+=dt;
     if(activity.kind==='timing'){position=50+Math.sin(elapsed*2.3)*46;if(position<42||position>62)armed=true;$('#activity-marker').style.left=`${position}%`;}
-    if(activity.kind==='kite'){position=clamp(position+(Math.sin(elapsed*1.6)*9+Math.cos(elapsed*.8)*6+held*35)*dt,1,99);success=clamp(success+(position>=35&&position<=65?dt:-dt*.4),0,8);progress(success/8);$('#activity-marker').style.left=`${position}%`;if(success>=8){complete();return;}}
+    if(activity.kind==='kite'){position=clamp(position+(18+Math.sin(elapsed*1.6)*8+Math.cos(elapsed*.8)*6+held*35)*dt,1,99);success=clamp(success+(position>=35&&position<=65?dt:-dt*.4),0,8);progress(success/8);$('#activity-marker').style.left=`${position}%`;if(success>=8){complete();return;}}
     resultGuard();requestAnimationFrame(frame);
   }requestAnimationFrame(frame);
 }

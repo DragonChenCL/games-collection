@@ -5,8 +5,9 @@ import {startActivity} from '../src/activities.js';
 function activity(t,id){
   const originalDocument=globalThis.document,originalRAF=globalThis.requestAnimationFrame;
   let now=0,frame;
-  const node=()=>({style:{},disabled:false,hidden:false,value:0,textContent:''});
-  const elements=new Map(['dialog','activity-root','activity-result','activity-progress','activity-hit','activity-marker','activity-bean','activity-again','activity-sequence','activity-remind'].map(id=>[`#${id}`,node()]));
+  const node=()=>({style:{},disabled:false,hidden:false,value:0,textContent:'',setPointerCapture(){}});
+  const elements=new Map(['dialog','activity-root','activity-result','activity-progress','activity-hit','activity-marker','activity-bean','activity-again','activity-sequence','activity-remind','kite-left','kite-right'].map(id=>[`#${id}`,node()]));
+  elements.set('.activity-zone',node());
   elements.get('#dialog').open=true;
   const cups=[node(),node(),node()],bells=[0,1,2].map(i=>({...node(),dataset:{bell:String(i)}})),state={rural:[],coins:0};
   globalThis.document={querySelector:s=>elements.get(s),querySelectorAll:s=>s==='[data-cup]'?cups:s==='[data-bell]'?bells:[]};
@@ -43,4 +44,23 @@ test('bell memory uses the displayed sequence and wrong notes reset progress',t=
   a.bells[1].onclick();assert.equal(a.get('activity-progress').value,0);
   a.get('activity-remind').onclick();assert.equal(a.get('activity-sequence').textContent,'宫 → 角 → 商 → 角');
   a.advance(3);for(const n of [0,2,1,2])a.bells[n].onclick();assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['grove']);
+});
+test('a kite left unattended cannot reward the player',t=>{
+  const a=activity(t,'outing');a.advance(90);
+  assert.equal(a.state.coins,0);assert.deepEqual(a.state.rural,[]);assert.equal(a.get('activity-progress').value,0);
+  assert.equal(parseFloat(a.get('activity-marker').style.left),99);
+});
+test('holding one kite button forever is not enough to win',t=>{
+  const a=activity(t,'outing');a.get('kite-left').onpointerdown({pointerId:1});a.advance(90);
+  assert.equal(a.state.coins,0);assert.equal(a.get('activity-progress').value,0);assert.equal(parseFloat(a.get('activity-marker').style.left),1);
+});
+test('alternating reel and release against the wind completes the kite activity',t=>{
+  const a=activity(t,'outing');let holding=false;
+  for(let i=0;i<300&&!a.state.coins;i++){
+    const position=parseFloat(a.get('activity-marker').style.left)||50;
+    if(position>54&&!holding){a.get('kite-left').onpointerdown({pointerId:1});holding=true;}
+    if(position<46&&holding){a.get('kite-left').onpointerup();holding=false;}
+    a.advance(.05);
+  }
+  assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['outing']);
 });
