@@ -243,7 +243,7 @@ $('#souvenir-quest').onclick=()=>{const p=nearestSouvenir(game.player,state.souv
 $('#rural-quest').onclick=()=>{const p=POIS.filter(p=>RURAL_ACTIVITIES[p.id]&&!state.rural.includes(p.id)).sort((a,b)=>distance(a,game.player)-distance(b,game.player))[0];if(p)guideTo(p);else toast('乡野五艺都已记入手记，仍可找老朋友重玩。');};
 $('#guide-route').onclick=()=>{if(game.guide){goto(game.guide);toast('辅助行走已开启。到达后仍需按 E 亲手交谈或拾取。');}};
 $('#guide-clear').onclick=()=>{game.guide=null;game.path=[];game.target=null;autoInteract=null;};
-$('#quest-toggle').onclick=()=>{$('#district-links').hidden=true;$('#app').classList.remove('atlas-open');$('#quests').classList.remove('travelling');$('#quests').classList.toggle('expanded');};
+$('#quest-toggle').onclick=()=>{setAtlas(false);$('#quests').classList.remove('travelling');$('#quests').classList.toggle('expanded');};
 function zoom(delta) { if(game.view==='eye')game.fov=clamp(game.fov+delta,.65,1.5);else game.camera.zoom=clamp(game.camera.zoom+delta,.46,2.2);dirty=true; }
 $('#zoom-in').onclick=()=>zoom(.12);$('#zoom-out').onclick=()=>zoom(-.12);$('#follow').onclick=()=>{game.following=true;};
 function pause() { game.paused=!game.paused;if(game.paused)soundscape?.update(game.player.x,false,false);$('#pause-screen').hidden=!game.paused;$('#pause').setAttribute('aria-pressed',String(game.paused));$('#pause').setAttribute('aria-label',game.paused?'继续游戏':'暂停游戏');keys.clear(); }
@@ -310,7 +310,7 @@ for(const event of ['pointerup','pointercancel','lostpointercapture'])pad.addEve
 $('#sprint').addEventListener('pointerdown',e=>{e.preventDefault();$('#sprint').setPointerCapture(e.pointerId);sprint=true;});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])$('#sprint').addEventListener(event,()=>sprint=false);
 $('#minimap').addEventListener('pointerdown',e=>{const r=e.currentTarget.getBoundingClientRect();goto({x:(e.clientX-r.left)/r.width*WORLD.width,y:(e.clientY-r.top)/r.height*WORLD.height});});
-function setAtlas(open){$('#district-links').hidden=!open;$('#app').classList.toggle('atlas-open',open);$('#atlas-toggle').setAttribute('aria-expanded',String(open));$('#atlas-toggle').textContent=open?'收起十景 · 返回长卷':'展开十景 · 选景漫游';$('#quests').classList.remove('expanded');}
+function setAtlas(open){$('#district-links').hidden=!open;$('#app').classList.toggle('atlas-open',open);$('#atlas-toggle').setAttribute('aria-expanded',String(open));$('#atlas-toggle').textContent=open?'收起十景 · 返回长卷':'展开十景 · 选景漫游';if(open)$('#quests').classList.remove('expanded');}
 $('#atlas-toggle').setAttribute('aria-expanded','false');$('#atlas-toggle').setAttribute('aria-controls','district-links');
 $('#atlas-toggle').onclick=()=>setAtlas($('#district-links').hidden);
 for(const b of document.querySelectorAll('[data-district]'))b.onclick=()=>{
