@@ -13,8 +13,8 @@ export function startActivity(p,{state,showDialog,chime,save,updateHUD}){
     if(!active())return;generation++;const first=!state.rural.includes(p.id);if(first)state.rural.push(p.id);state.coins+=first?15:3;chime();save();updateHUD();
     showDialog(`${activity.title} · 成了！`,`<p>${activity.npc}向你道谢，递来<b>${first?15:3} 文</b>。${first?'这一段乡野相逢已记入手记。':'老朋友，再来玩！'}</p><p>乡野游艺：<b>${state.rural.length} / 5</b>。船坞、水磨、古刹、春集和远郊，各有一段小事等你亲手来做。</p>`);
   };
-  let previous=performance.now(),elapsed=0,position=50,success=0,held=0,turn=0,stage=0,resultGuard=()=>{};
-  if(activity.kind==='timing')$('#activity-hit').onclick=()=>{if(position>=42&&position<=62){success++;progress(success/3);chime();result(`好锤法！${success} / 3`);if(success===3)complete();}else{success=0;progress(0);result('这一锤偏了。等指针进入命中区，再落锤。');}};
+  let previous=performance.now(),elapsed=0,position=50,success=0,held=0,turn=0,stage=0,armed=true,resultGuard=()=>{};
+  if(activity.kind==='timing')$('#activity-hit').onclick=()=>{if(!armed)return;armed=false;if(position>=42&&position<=62){success++;progress(success/3);chime();result(`好锤法！${success} / 3，等下一次指针经过。`);if(success===3)complete();}else{success=0;progress(0);result('这一锤偏了。等指针进入命中区，再落锤。');}};
   if(activity.kind==='wheel'){
     const button=$('#activity-wheel');let angle=null,dragged=false;
     const rotate=n=>{turn=Math.max(0,turn+n);button.querySelector('svg').style.transform=`rotate(${turn}rad)`;progress(turn/(Math.PI*4));if(turn>=Math.PI*4)complete();};
@@ -24,10 +24,11 @@ export function startActivity(p,{state,showDialog,chime,save,updateHUD}){
     button.onpointerup=button.onpointercancel=()=>{angle=null;};button.onclick=()=>{if(!dragged)rotate(Math.PI/3+.0001);};
   }
   if(activity.kind==='bells'){
-    const pattern=[0,2,1,0];let shownUntil=2.5;
-    document.querySelectorAll('[data-bell]').forEach(b=>b.onclick=()=>{if(elapsed<shownUntil){result('先记住四声，再按顺序点回。');return;}if(+b.dataset.bell===pattern[success]){success++;progress(success/4);chime();result(`第 ${success} 声对了。`);if(success===4)complete();}else{success=0;progress(0);result('这一声不对，重新从第一声试试；也可以再听一遍。');}});
-    $('#activity-remind').onclick=()=>{shownUntil=elapsed+2.5;success=0;progress(0);$('#activity-sequence').textContent='宫 → 角 → 商 → 宫';};
-    resultGuard=()=>{if(elapsed>=shownUntil)$('#activity-sequence').textContent='请按刚才的顺序点钟';};
+    const pattern=Array.from({length:4},()=>Math.floor(Math.random()*3)),words=pattern.map(i=>['宫','商','角'][i]).join(' → ');let shownUntil=2.5,replayStarted=0,heard=0;
+    $('#activity-sequence').textContent=words;
+    document.querySelectorAll('[data-bell]').forEach(b=>b.onclick=()=>{if(elapsed<shownUntil){result('先记住四声，再按顺序点回。');return;}chime(+b.dataset.bell);if(+b.dataset.bell===pattern[success]){success++;progress(success/4);result(`第 ${success} 声对了。`);if(success===4)complete();}else{success=0;progress(0);result('这一声不对，重新从第一声试试；也可以再听一遍。');}});
+    $('#activity-remind').onclick=()=>{replayStarted=elapsed;heard=0;shownUntil=elapsed+2.5;success=0;progress(0);$('#activity-sequence').textContent=words;};
+    resultGuard=()=>{if(heard<4&&elapsed>=replayStarted+heard*.55){chime(pattern[heard]);heard++;}if(elapsed>=shownUntil)$('#activity-sequence').textContent='请按刚才的顺序点钟';};
   }
   if(activity.kind==='cups'){
     const positions=[0,1,2],buttons=[...document.querySelectorAll('[data-cup]')];let guessed=false;
@@ -46,8 +47,8 @@ export function startActivity(p,{state,showDialog,chime,save,updateHUD}){
   }
   function frame(now){
     if(!active())return;const dt=Math.min(.1,(now-previous)/1000);previous=now;elapsed+=dt;
-    if(activity.kind==='timing'){position=50+Math.sin(elapsed*2.3)*46;$('#activity-marker').style.left=`${position}%`;}
-    if(activity.kind==='kite'){position=clamp(position+(Math.sin(elapsed*1.6)*9+Math.cos(elapsed*.8)*6+held*35)*dt,1,99);success=clamp(success+(position>=35&&position<=65?dt:-dt*.4),0,8);progress(success/8);$('#activity-marker').style.left=`${position}%`;if(success>=8){complete();return;}}
+    if(activity.kind==='timing'){position=50+Math.sin(elapsed*2.3)*46;if(position<42||position>62)armed=true;$('#activity-marker').style.left=`${position}%`;}
+    if(activity.kind==='kite'){position=clamp(position+(18+Math.sin(elapsed*1.6)*8+Math.cos(elapsed*.8)*6+held*35)*dt,1,99);success=clamp(success+(position>=35&&position<=65?dt:-dt*.4),0,8);progress(success/8);$('#activity-marker').style.left=`${position}%`;if(success>=8){complete();return;}}
     resultGuard();requestAnimationFrame(frame);
   }requestAnimationFrame(frame);
 }
