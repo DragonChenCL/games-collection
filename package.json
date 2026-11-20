@@ -8,6 +8,6 @@
     "dev": "npm run dev --workspace=games/qingming",
     "build": "npm run build --workspaces && node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces && node --test scripts/*.test.mjs"
   }
 }
