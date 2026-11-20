@@ -310,11 +310,13 @@ for(const event of ['pointerup','pointercancel','lostpointercapture'])pad.addEve
 $('#sprint').addEventListener('pointerdown',e=>{e.preventDefault();$('#sprint').setPointerCapture(e.pointerId);sprint=true;});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])$('#sprint').addEventListener(event,()=>sprint=false);
 $('#minimap').addEventListener('pointerdown',e=>{const r=e.currentTarget.getBoundingClientRect();goto({x:(e.clientX-r.left)/r.width*WORLD.width,y:(e.clientY-r.top)/r.height*WORLD.height});});
-$('#atlas-toggle').onclick=()=>{$('#district-links').hidden=!$('#district-links').hidden;$('#app').classList.toggle('atlas-open',!$('#district-links').hidden);$('#quests').classList.remove('expanded');};
+function setAtlas(open){$('#district-links').hidden=!open;$('#app').classList.toggle('atlas-open',open);$('#atlas-toggle').setAttribute('aria-expanded',String(open));$('#atlas-toggle').textContent=open?'收起十景 · 返回长卷':'展开十景 · 选景漫游';$('#quests').classList.remove('expanded');}
+$('#atlas-toggle').setAttribute('aria-expanded','false');$('#atlas-toggle').setAttribute('aria-controls','district-links');
+$('#atlas-toggle').onclick=()=>setAtlas($('#district-links').hidden);
 for(const b of document.querySelectorAll('[data-district]'))b.onclick=()=>{
   if(game.mode==='boat'){toast('请先回码头，再游历城郊。');return;}
   const district=DISTRICTS[Number(b.dataset.district)],p={x:district.x,y:roadY(district.x,district.bank||0)};
-  $('#district-links').hidden=true;$('#app').classList.remove('atlas-open');
+  setAtlas(false);
   showDialog(`远游 · ${district.name}`,`<p>${district.note}</p><p>沿街步行可自由看风景；雇车能直接到达这一景，${state.travelPass?'<b>首程车票免费</b>，之后每程十二文。':'每程 <b>12 文</b>。'}船坞、水磨、古刹、春集和远郊都有可亲手体验的游艺。</p>`,[{text:'标记方向 · 自己走',run:()=>guideTo({...p,name:district.name})},{text:state.travelPass?'使用首程车票 · 免费':state.coins>=12?'雇车前往 · 12 文':'雇车需 12 文',secondary:true,run:()=>{if(!state.travelPass&&state.coins<12){toast('铜钱不足，沿街步行不花钱。');return;}if(state.travelPass)state.travelPass=false;else state.coins-=12;game.player={...p};game.guide=null;game.path=[];game.target=null;autoInteract=null;game.following=true;game.camera.x=p.x;game.camera.y=p.y+30;save();toast(`车马已到${district.name}。`);}}]);
 };
 if(touch){$('#welcome>small').textContent='方向盘行走 · 点人物交谈 · 双指缩放';$('.quest-foot').textContent='上下滑动看目标 · 只指路，不代走或拾取';}

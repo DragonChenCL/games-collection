@@ -125,3 +125,9 @@ dialog p{font-size:14px}dialog .fact{font-size:12px}.controls-guide p{font-size:
   .quests.expanded .quest-row{flex-direction:row;min-height:44px;padding:4px 7px;border-bottom:1px solid var(--line)}
   .quests.expanded .quest-row small{font-size:10px;line-height:1.25}.quests.expanded .quest-foot{display:none}
 }
+@media(max-width:600px) and (min-height:501px){
+  .map-wrap,.quests.expanded~.map-wrap{right:12px;bottom:92px;width:155px;padding:0}
+  .map-wrap .map-title,.map-wrap #minimap,.map-wrap .map-labels{display:none}
+  #atlas-toggle{margin:0;padding:5px 8px;min-height:48px;border-top:0;font-size:12px}
+  #district-links{position:fixed;top:180px;bottom:190px;left:12px;right:72px;width:auto;max-height:none;padding:6px;scrollbar-width:thin}
+}
