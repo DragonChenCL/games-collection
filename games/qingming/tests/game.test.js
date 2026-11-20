@@ -1,0 +1,99 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { START, BRIDGE, POIS, SOUVENIRS, CARGO, nodes, edges, newGame, restoreGame, route, nearestRoad, walkable, riverY, roadY, bridgeLift, stampCount, distance, boatWithinRiver, clamp } from '../src/game.js';
+import { WORLD, BRIDGES, DISTRICTS, districtAt, nearestSouvenir, stepAlongRoad, restoreSession } from '../src/game.js';
+
+test('new journeys are independent and start on a walkable road beside the bridge',()=>{
+  const a=newGame();a.souvenirs.push('s0');a.player.x=100;
+  assert.deepEqual(newGame().souvenirs,[]);assert.deepEqual(newGame().player,START);
+  assert.ok(walkable(START));assert.equal(stampCount(newGame()),0);
+});
+test('every objective and souvenir is accessible by the road network',()=>{
+  for(const target of [...POIS,...SOUVENIRS]){
+    assert.ok(nearestRoad(target).distance<50,target.id);
+    const path=route(START,target);assert.ok(path.length);
+    assert.ok(distance(path.at(-1),target)<50,target.id);
+    let previous=START;
+    for(const p of path){
+      for(let t=0;t<=1;t+=.1)assert.ok(walkable({x:previous.x+(p.x-previous.x)*t,y:previous.y+(p.y-previous.y)*t}),target.id);
+      previous=p;
+    }
+  }
+});
+test('cross-bank routes use the actual bridge instead of walking through the river',()=>{
+  const path=route({x:2000,y:roadY(2000)},{x:2400,y:roadY(2400,1)});
+  assert.ok(path.some(p=>distance(p,BRIDGE.a)<1));assert.ok(path.some(p=>distance(p,BRIDGE.b)<1));
+  assert.equal(walkable({x:2000,y:riverY(2000)}),false);
+});
+test('same-edge routes go directly to the projected target',()=>{
+  const path=route({x:2010,y:roadY(2010)},{x:2100,y:roadY(2100)});
+  assert.equal(path.length,1);assert.ok(walkable(path[0]));
+});
+test('road graph is connected and has no zero-length edges',()=>{
+  const seen=new Set([0]);let changed=true;
+  while(changed){changed=false;for(const [a,b] of edges){assert.ok(distance(nodes[a],nodes[b])>0);if(seen.has(a)&&!seen.has(b)){seen.add(b);changed=true;}if(seen.has(b)&&!seen.has(a)){seen.add(a);changed=true;}}}
+  assert.equal(seen.size,nodes.length);
+});
+test('bridge visually lifts walkers while banks remain at ground level',()=>{
+  assert.ok(bridgeLift({x:(BRIDGE.a.x+BRIDGE.b.x)/2,y:(BRIDGE.a.y+BRIDGE.b.y)/2})>75);
+  assert.equal(bridgeLift({x:2000,y:roadY(2000)}),0);assert.ok(bridgeLift(BRIDGE.a)<.01);
+});
+test('cargo is reachable within the navigable river corridor',()=>{
+  assert.equal(CARGO.length,5);for(const p of CARGO)assert.ok(boatWithinRiver(p));
+  assert.equal(boatWithinRiver({x:3600,y:riverY(3600)+150}),false);
+});
+test('saved progress roundtrips, restoring position onto a safe road',()=>{
+  const s={...newGame(),player:{x:2000,y:roadY(2000)},coins:42,delivered:2,courierStarted:true,boatWon:true,souvenirs:['s0'],pickedCoins:[1,3],visited:['tea','post']};
+  const p=restoreGame(JSON.stringify(s));assert.deepEqual(p,s);
+});
+test('invalid, incompatible and missing saves start safely',()=>{
+  for(const value of [null,undefined,'','{broken','null','[]','42','{"version":1}','{"version":999}'])assert.deepEqual(restoreGame(value),newGame());
+});
+test('untrusted saves are clamped, filtered, deduplicated and moved out of water',()=>{
+  const p=restoreGame(JSON.stringify({version:2,player:{x:2000,y:riverY(2000)},coins:-100,delivered:Infinity,courierStarted:'true',boatWon:1,souvenirs:['s0','s0','bad'],pickedCoins:[1,1,999,'2'],visited:['post','post','bad']}));
+  assert.equal(p.coins,0);assert.equal(p.delivered,0);assert.equal(p.courierStarted,false);assert.equal(p.boatWon,false);
+  assert.deepEqual(p.souvenirs,['s0']);assert.deepEqual(p.pickedCoins,[1]);assert.deepEqual(p.visited,['post']);assert.ok(walkable(p.player));
+  const huge=restoreGame('{"version":2,"player":{"x":-100000,"y":999999},"coins":999999,"delivered":40,"pickedCoins":{},"souvenirs":null}');
+  assert.equal(huge.coins,9999);assert.equal(huge.delivered,3);assert.ok(walkable(huge.player));
+});
+test('each completed activity contributes exactly one stamp',()=>{
+  const s=newGame();s.delivered=3;assert.equal(stampCount(s),1);s.boatWon=true;assert.equal(stampCount(s),2);s.souvenirs=SOUVENIRS.map(s=>s.id);assert.equal(stampCount(s),3);
+});
+test('numeric clamping respects both boundaries',()=>{assert.equal(clamp(-4,0,1),0);assert.equal(clamp(9,0,1),1);assert.equal(clamp(.4,0,1),.4);});
+test('the extended handscroll has ten districts, and all three bridges are usable',()=>{
+  assert.equal(WORLD.width,18000);assert.equal(DISTRICTS.length,10);assert.equal(BRIDGES.length,3);
+  for(const district of DISTRICTS)assert.equal(districtAt(district.x).name,district.name);
+  for(const bridge of BRIDGES){
+    const path=route({x:bridge.a.x-100,y:roadY(bridge.a.x-100)},{x:bridge.b.x+100,y:roadY(bridge.b.x+100,1)});
+    assert.ok(path.some(p=>distance(p,bridge.a)<1));assert.ok(path.some(p=>distance(p,bridge.b)<1));
+  }
+  assert.ok(boatWithinRiver({x:17000,y:riverY(17000)}));
+});
+test('holding west follows curved streets without an invisible wall',()=>{
+  let p={x:2200,y:roadY(2200)-48};
+  for(let i=0;i<200;i++){const previous=p;p=stepAlongRoad(p,-1,0,3);assert.ok(walkable(p));assert.ok(distance(previous,p)>0);}
+  assert.ok(p.x<1700);
+});
+test('holding east passes the dock spur rather than dead-ending on its side',()=>{
+  let p={...START};for(let i=0;i<1000;i++){p=stepAlongRoad(p,1,0,3);assert.ok(walkable(p));}
+  assert.ok(p.x>5600);
+});
+test('spring navigation chooses the nearest remaining item by walking distance',()=>{
+  assert.equal(nearestSouvenir({x:800,y:roadY(800)},[]).id,'s2');
+  assert.equal(nearestSouvenir({x:4200,y:roadY(4200)},[]).id,'s1');
+  assert.equal(nearestSouvenir(START,SOUVENIRS.map(p=>p.id)),undefined);
+});
+test('boat refresh preserves remaining time, cargo, position and preferences',()=>{
+  const b={remaining:44,collected:[0,1],player:{x:4100,y:riverY(4100)}};
+  const restored=restoreSession(JSON.stringify({version:2,activeBoat:b,preferences:{zoom:1.3,sound:true}}));
+  assert.equal(restored.zoom,1.3);assert.equal(restored.sound,true);assert.equal(restored.boat.remaining,44);assert.deepEqual(restored.boat.collected,[0,1]);assert.deepEqual(restored.boat.player,b.player);
+  assert.equal(restoreSession('{broken').boat,null);
+  assert.equal(restoreSession(JSON.stringify({version:2,activeBoat:{...b,remaining:0}})).boat,null);
+  assert.equal(restoreSession(JSON.stringify({version:2,activeBoat:{...b,player:{x:4100,y:0}}})).boat,null);
+});
+test('only Rainbow Bridge uses the high arch; stone and timber crossings have matching elevations',()=>{
+  assert.deepEqual(BRIDGES.map(b=>b.kind),['rainbow','stone','timber']);
+  assert.deepEqual(BRIDGES.map(b=>b.height),[150,52,0]);
+  for(const b of BRIDGES)assert.ok(Math.abs(bridgeLift({x:(b.a.x+b.b.x)/2,y:(b.a.y+b.b.y)/2})-b.height)<.001);
+  assert.equal(DISTRICTS.find(d=>d.name==='竹林古刹').bank,1);
+});
