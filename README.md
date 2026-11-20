@@ -37,6 +37,12 @@ python3 -m http.server 4173 --bind 0.0.0.0 --directory dist
 
 在运行此命令的电脑浏览器访问 `http://localhost:4173/games/qingming/`。请不要双击 HTML（模块需要 HTTP）。
 
+### GitHub Pages
+
+仓库管理员在 Settings → Pages 把 Source 设为 **GitHub Actions**。免费账户需使用公开仓库；公开网站不等于私有访问，任何拿到地址的人都能打开。
+
+`.github/workflows/pages.yml` 在合并到 `main` 后自动测试、构建，并把整个 `dist/` 发布到 Pages；也可在 Actions 手动运行。成功后从工作流的 `github-pages` 环境链接打开合集，游戏在其下的 `games/qingming/`。后续合并到 `main` 会自动更新，无需 Node 常驻服务器。个人进度仍保存在各自浏览器中。
+
 ### 操作
 
 | 操作 | 方式 |
