@@ -29,20 +29,33 @@ export const POIS = [
   { id: 'gate', name: '汴京城门', label: '入城瞧瞧', x: 480, y: roadY(480), color: '#8a7657', type: 'sight' },
   { id: 'fields', name: '郊外春田', label: '春风十里', x: 5250, y: roadY(5250), color: '#6e8152', type: 'sight' },
   { id: 'temple', name: '河畔小庙', label: '过桥寻幽', x: 2300, y: roadY(2300, 1), color: '#8a7657', type: 'sight' },
-  { id: 'shipyard', name: '汴东船坞', label: '看匠人造船', x: 6900, y: roadY(6900), color: '#86724e', type: 'sight' },
-  { id: 'mill', name: '河湾水磨', label: '听水轮转动', x: 8700, y: roadY(8700), color: '#6c826c', type: 'sight' },
-  { id: 'grove', name: '竹林古刹', label: '竹下听钟', x: 12000, y: roadY(12000,1), color: '#6a7f65', type: 'sight' },
-  { id: 'fair', name: '村社春集', label: '看百戏赶集', x: 14500, y: roadY(14500), color: '#a16b4d', type: 'sight' },
-  { id: 'outing', name: '远郊踏青', label: '寻一缕春风', x: 17100, y: roadY(17100), color: '#74825d', type: 'sight' },
+  { id: 'shipyard', name: '汴东船坞', label: '帮木匠落锤', x: 6900, y: roadY(6900), color: '#86724e', type: 'sight' },
+  { id: 'mill', name: '河湾水磨', label: '推水轮磨麦', x: 8700, y: roadY(8700), color: '#6c826c', type: 'sight' },
+  { id: 'grove', name: '竹林古刹', label: '记四声钟音', x: 12000, y: roadY(12000,1), color: '#6a7f65', type: 'sight' },
+  { id: 'fair', name: '村社春集', label: '寻盏下红豆', x: 14500, y: roadY(14500), color: '#a16b4d', type: 'sight' },
+  { id: 'outing', name: '远郊踏青', label: '借风放纸鸢', x: 17100, y: roadY(17100), color: '#74825d', type: 'sight' },
 ];
 export const SOUVENIRS = [
   { id: 's0', x: 2480, y: roadY(2480, 1) - 18, name: '燕子纸鸢' },
   { id: 's1', x: 4300, y: roadY(4300) + 15, name: '春日花笺' },
   { id: 's2', x: 1150, y: roadY(1150) - 15, name: '如意香囊' },
 ];
-export const COINS = Array.from({ length: 32 }, (_, i) => { const x = 650 + i * 150; return { id: i, x, y: roadY(x, i % 5 === 0 ? 1 : 0) + Math.sin(i * 3) * 22 }; });
+export const COINS = Array.from({ length: 72 }, (_, i) => { const x = i<32?650+i*150:5750+(i-32)*300; return { id: i, x, y: roadY(x, i % 5 === 0 ? 1 : 0) + Math.sin(i * 3) * 22 }; });
 export const CARGO = Array.from({ length: 5 }, (_, i) => ({ id: i, x: 3770 + i * 235, y: riverY(3770 + i * 235) + Math.sin(i * 2) * 65 }));
 export const DELIVERY = ['tea', 'silk', 'restaurant'];
+export const PARCELS = [
+  {id:'tea',name:'竹纸包 · 一撮嫩叶',clue:'掌柜正在烧水，等着今年的头一茬新茶。',reply:'春茶到得正好！街角的说书人还没开讲，先替你留一盏。'},
+  {id:'silk',name:'青布包 · 折好的细绢',clue:'掌柜拿着裁尺，要一匹能绣春燕的素绢。',reply:'细绢没有沾水，真是细心。等绣好春燕，送你看看手艺。'},
+  {id:'restaurant',name:'双层盒 · 温热的春蔬',clue:'跑堂催着上菜，客人等一盒春蔬点心。',reply:'食盒还热着，恰好赶上开席。今日满楼客人，有你一份辛劳。'},
+];
+export function handOverParcel(state,shop,parcel) {
+  const expected=DELIVERY[state.delivered];
+  if(!state.courierStarted||!expected||expected!==shop||parcel!==expected)return false;
+  state.delivered++;state.coins+=12;return true;
+}
+export function markGuide(game,target) {
+  game.guide={...target};game.path=[];game.target=null;
+}
 export const RURAL_ACTIVITIES={
   shipyard:{npc:'造船木匠',title:'船坞落锤',kind:'timing',words:'木匠请你帮忙合拢船板。指针进入标出的命中区时落锤，连中三次。'},
   mill:{npc:'水磨庄主',title:'转轮磨麦',kind:'wheel',words:'顺时针划动水轮两圈，让磨石转起来。也可点按水轮十二下。'},
@@ -51,7 +64,7 @@ export const RURAL_ACTIVITIES={
   outing:{npc:'踏青牧童',title:'借风放鸢',kind:'kite',words:'风会把纸鸢吹偏。按住左右按钮收放风线，让纸鸢在中央标出的安全区停留八秒。'}
 };
 export const START = { x: 2920, y: roadY(2920) + 10 };
-export function newGame() { return { version: 2, player: { ...START }, coins: 0, pickedCoins: [], souvenirs: [], delivered: 0, courierStarted: false, boatWon: false, visited: [],rural:[] }; }
+export function newGame() { return { version: 2, player: { ...START }, coins: 0, pickedCoins: [], souvenirs: [], delivered: 0, courierStarted: false, boatWon: false, visited: [],rural:[],travelPass:true }; }
 export function restoreGame(raw) {
   const fresh = newGame();
   try {
@@ -66,6 +79,7 @@ export function restoreGame(raw) {
       delivered: Number.isFinite(p.delivered) ? clamp(Math.floor(p.delivered), 0, 3) : 0,
       courierStarted: p.courierStarted === true,
       boatWon: p.boatWon === true,
+      travelPass: p.travelPass !== false,
       rural:[...new Set((Array.isArray(p.rural)?p.rural:[]).filter(id=>Object.hasOwn(RURAL_ACTIVITIES,id)))],
     };
   } catch { return fresh; }

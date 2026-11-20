@@ -1,7 +1,8 @@
-import { WORLD, riverY, roadY, BRIDGE, BRIDGES, BRIDGE_HEIGHT, POIS, SOUVENIRS, COINS, CARGO, bridgeLift, clamp } from './game.js';
+import { WORLD, riverY, roadY, BRIDGE, BRIDGES, BRIDGE_HEIGHT, POIS, SOUVENIRS, COINS, CARGO, RURAL_ACTIVITIES, bridgeLift, clamp } from './game.js';
 import { drawFigure, drawDonkey, drawSedan, OCCUPATIONS, FigureCache } from './figures.js';
 import { drawScenery, drawLivingScenery } from './scenery.js';
 import { EyeScene } from './eye.js';
+import { drawGuide } from './navigation.js';
 
 const INK = '#655e4b';
 const COLORS = ['#7b8976', '#a46e58', '#6b7c7e', '#b19a70', '#817185', '#c0ac87'];
@@ -206,13 +207,18 @@ export function pedestrian(c,p,t,player=false) {
 }
 export function boat(c,p,t,player=false) {
   c.save();c.translate(p.x,p.y+Math.sin(t*2+p.seed)*1.5);if(p.dir<0)c.scale(-1,1);const s=player?.8:(p.hero?2.1:p.large?1.5:1);c.scale(s,s);
+  if(p.kind==='timber'&&!player){
+    for(let i=0;i<7;i++){const y=-9+i*5;line(c,[[-67,y],[66,y-10]],i%2?'#a28c62':'#b19a6b',5);ellipse(c,66,y-10,3,2,'#c1ab7b','#88734f');}
+    for(const x of [-36,37])line(c,[[x,-12],[x+2,23]],'#786c4b',1.5);
+    drawFigure(c,{x:-32,y:2,seed:p.seed,role:'farmer',color:'#7a866e',moving:false},t);line(c,[[-24,-24],[15,29]],'#7b6f50',2);c.restore();return;
+  }
   ellipse(c,0,10,67,11,'#5f80782c');
   line(c,[[-72,14],[-95,14]],'#e0dfbd88',1);line(c,[[-69,20],[-114,20]],'#e0dfbd66',1);
   c.beginPath();c.moveTo(-62,-3);c.quadraticCurveTo(0,13,65,-12);c.lineTo(54,6);c.quadraticCurveTo(0,28,-53,15);c.closePath();c.fillStyle=player?'#627e70':'#806f4d';c.fill();c.strokeStyle='#5e6047';c.lineWidth=2;c.stroke();
   poly(c,[[-46,-1],[46,-6],[36,7],[-39,13]],'#b6a172');
   for(let x=-35;x<40;x+=11)line(c,[[x,-1],[x+2,10]],'#86734f',1);
   if(p.large){
-    const variant=p.hero?0:p.seed%3;
+    const variant=p.hero?0:p.kind==='ferry'?1:p.kind==='grain'?2:p.seed%3;
     if(variant!==2){c.beginPath();c.moveTo(-31,0);c.quadraticCurveTo(-28,-48,9,-39);c.quadraticCurveTo(33,-32,33,-4);c.closePath();c.fillStyle=variant===1?'#a7a27d':'#c0ae7f';c.fill();c.strokeStyle='#706c4d';c.stroke();}
     for(let i=0;i<6;i++)line(c,[[-27+i*10,-29],[-28+i*11,-2]],'#7b7754',1);
     if(variant===0){
@@ -224,6 +230,7 @@ export function boat(c,p,t,player=false) {
     if(variant===1){poly(c,[[-40,-36],[28,-41],[43,-29],[-32,-24]],'#7c8268','#656b50');for(let i=0;i<4;i++)line(c,[[-24+i*16,-23],[-23+i*16,-3]],'#625f45',1.4);}
     if(variant===2)for(let j=0;j<3;j++)for(let i=0;i<5;i++)ellipse(c,-30+i*14,-4-j*7,8,5,'#b6a57b','#85754e');
     drawFigure(c,{x:variant===2?-42:39,y:-1,dir:-1,color:'#89856b',seed:4,role:'traveller',moving:false},t);
+    if(p.kind==='ferry')for(const [x,role] of [[-18,'woman'],[8,'scholar']]){c.save();c.translate(x,-2);c.scale(.72,.72);drawFigure(c,{x:0,y:0,seed:x+30,role,color:'#96917d',moving:false},t);c.restore();}
     line(c,[[42,-20],[63,20]],'#7b6d4c',1.4);
   }else{
     c.save();c.translate(-27,0);pedestrian(c,{x:0,y:0,seed:3,color:player?'#9d4e39':'#7c7c5e',moving:false,hat:true},t);c.restore();
@@ -241,7 +248,7 @@ export class Scene {
     this.width=1;this.height=1;this.dpr=1;
     const r=random(87);
     this.npcs=Array.from({length:300},(_,i)=>({x:300+r()*(i<110?5400:WORLD.width-600),bank:i%4===0?1:0,seed:r()*100,speed:12+r()*23,dir:i%2?1:-1,color:COLORS[i%COLORS.length],role:OCCUPATIONS[i%OCCUPATIONS.length],hat:i%7===0,basket:i%17===0,moving:true}));
-    this.ships=Array.from({length:34},(_,i)=>({seed:i*17,x:250+i*(WORLD.width-500)/34,y:0,lane:(i%3-1)*69,dir:i%2?1:-1,speed:15+i%5*3,large:i%4===0}));
+    this.ships=Array.from({length:34},(_,i)=>({seed:i*17,kind:['sail','grain','ferry','fish','reed','timber'][i%6],x:250+i*(WORLD.width-500)/34,y:0,lane:(i%3-1)*69,dir:i%2?1:-1,speed:15+i%5*3,large:i%6<3}));
     this.ships.push({hero:true,large:true,seed:0,x:3150,y:riverY(3150)+20,dir:1,speed:0,lane:20});
     this.figures=new FigureCache();this.eye=new EyeScene({tree,boat});this.update(0,0);
   }
@@ -301,18 +308,17 @@ export class Scene {
       const v=((t*(i%2?-.012:.009)+i/24)%1+1)%1;
       people.push({x:span.a.x+(span.b.x-span.a.x)*v+(i%2?14:-14),y:span.a.y+(span.b.y-span.a.y)*v,seed:i,dir:i%2?1:-1,color:COLORS[i%6],role:OCCUPATIONS[i%12],moving:true,basket:i%8===0});
     }
-    for(const p of POIS)people.push({...p,seed:2,color:p.color,moving:false,hat:p.type==='boat'});
+    for(const p of POIS)people.push({...p,seed:2,color:p.color,moving:false,hat:p.type==='boat',role:p.id==='grove'?'monk':p.id==='outing'?'child':p.id==='shipyard'||p.id==='mill'?'farmer':'merchant'});
     if(mode==='walk')people.push({...player,isPlayer:true,seed:0,dir:game.facing,moving:game.moving});
     people.sort((a,b)=>(a.y-bridgeLift(a))-(b.y-bridgeLift(b)));
     for(const p of people){if(p.isPlayer)pedestrian(c,p,t,true);else c.drawImage(this.figures.get(p,t),p.x-60,p.y-bridgeLift(p)-88);}
-    if(mode==='walk'){
-      const y=player.y-bridgeLift(player)-76;ellipse(c,player.x,y,13,13,'#95503b','#efe3bf');label(c,'我',player.x,y+5,15,'#fff0ca');poly(c,[[player.x-4,y+12],[player.x+4,y+12],[player.x,y+20]],'#95503b',null);
-    }
     for(const p of POIS){
       if(p.x<left||p.x>right)continue;
       const active=p.id===(state.courierStarted&&state.delivered<3?['tea','silk','restaurant'][state.delivered]:'post');
       const y=p.y-bridgeLift(p)-65+Math.sin(t*2+p.x)*2;
-      line(c,[[p.x,y+8],[p.x,y+18]],p.color,1);ellipse(c,p.x,y,active?13:10,active?13:10,active?'#9e4e36':'#f1e6c9',p.color);label(c,p.type==='boat'?'舟':p.type==='courier'?'驿':p.type==='sight'?'景':'商',p.x,y+4,active?12:10,active?'#f5e7c5':p.color);
+      const rural=RURAL_ACTIVITIES[p.id];
+      line(c,[[p.x,y+8],[p.x,y+18]],p.color,1);ellipse(c,p.x,y,active?13:10,active?13:10,active?'#9e4e36':'#f1e6c9',p.color);label(c,rural?(state.rural.includes(p.id)?'成':'艺'):p.type==='boat'?'舟':p.type==='courier'?'驿':p.type==='sight'?'景':'商',p.x,y+4,active?12:10,active?'#f5e7c5':p.color);
+      if(rural){label(c,rural.npc,p.x,y-22,14,p.color);label(c,p.label,p.x,y+36,12,p.color);}
     }
     // Willows, shop flags, cooking smoke and birds are live geometry, not images.
     for(let i=Math.floor(left/220);i<right/220;i++){
@@ -336,6 +342,12 @@ export class Scene {
     }
     if(game.particles)for(const p of game.particles){ellipse(c,p.x,p.y,2,2,`rgba(174,111,57,${clamp(p.life,0,1)})`);}
     c.setTransform(this.dpr,0,0,this.dpr,0,0);
+    if(mode==='walk'){
+      const x=(player.x-camera.x)*camera.zoom+w/2,y=(player.y-bridgeLift(player)-camera.y)*camera.zoom+h/2;
+      ellipse(c,x,y,Math.max(12,20*camera.zoom),Math.max(5,7*camera.zoom),null,'#fff0c9');
+      const head=y-Math.max(61,76*camera.zoom);ellipse(c,x,head,13,13,'#95503b','#efe3bf');label(c,'我',x,head+5,15,'#fff0ca');poly(c,[[x-4,head+12],[x+4,head+12],[x,head+20]],'#95503b',null);
+    }
+    drawGuide(c,game,w,h);
     if(mode==='boat'){
       const goal=CARGO.filter(q=>!boatRun.collected.includes(q.id)).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
       if(goal){const x=clamp((goal.x-camera.x)*camera.zoom+w/2,68,w-90),y=clamp((goal.y-camera.y)*camera.zoom+h/2-48,96,h-165),a=Math.atan2(goal.y-player.y,goal.x-player.x);ellipse(c,x,y,21,21,'#eadbbbec','#965b3b');c.save();c.translate(x,y);c.rotate(a);poly(c,[[12,0],[-7,-8],[-3,0],[-7,8]],'#93543c',null);c.restore();label(c,`货箱 · ${Math.ceil(Math.hypot(goal.x-player.x,goal.y-player.y)/20)} 步`,x,y+37,13,'#684f39');}

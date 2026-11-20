@@ -88,7 +88,7 @@ export function drawScenery(c,d,left,width){
   // Bamboo temple precinct: a distinct walled compound and a tiered stone pagoda.
   for(let x=10910;x<12700;x+=137)if(visible(x)){const r=seed(x);bamboo(x,roadY(x)-90-r()*60,.8+r()*.5);if(x%3===0)pine(x-20,roadY(x)-234,1.1);}
   if(visible(12000,650)){
-    const y=roadY(12000,1)+176;
+    const y=roadY(12000,1)+100;
     poly(c,[[11650,y+25],[12400,y+25],[12440,y-100],[11690,y-100]],'#c5b99255','#afa27e55');
     temple(c,12000,y);wall(11690,y-8,180);wall(12150,y-8,205);for(const x of [11650,11800,12270,12360])pine(x,y-60,.9);gateway(12000,y+45);
     for(const x of [11340,11510,11820,12180,12480,12640])bamboo(x,roadY(x,1)+160,.9+(x%3)*.1);
@@ -113,6 +113,41 @@ export function drawScenery(c,d,left,width){
     well(x+w+70,y+26);tree(c,x-75,y+35,1.2,true);tree(c,x+w+140,y-76,.85);if(kind!==1)haystack(x-55,y-22,30);
     for(let j=0;j<4;j++){line(c,[[x+15+j*24,y+34],[x+28+j*24,y+3]],'#8c8055',1);ellipse(c,x+21+j*24,y+21,10,6,'#c1ad7c','#8c8055');}
   }
+  if(visible(6700,700)){
+    const y=roadY(6700)-66;
+    for(let i=0;i<9;i++)line(c,[[6440+i*39,y+78],[6650+i*39,y-20]],'#9e8961',7);
+    for(const x of [6470,6780]){line(c,[[x,y+70],[x+4,y-93]],'#87704e',6);line(c,[[x-24,y-92],[x+95,y-92]],'#87704e',5);line(c,[[x+66,y-92],[x+66,y-12]],'#796b4e',1);ellipse(c,x+66,y-12,9,5,null,'#796b4e');}
+    poly(c,[[6520,y+17],[6740,y-6],[6740,y+8],[6520,y+31]],'#b59f70','#84724f');
+    for(let i=0;i<6;i++)ellipse(c,6780+i*16,y+43,12,7,null,'#8f815c');
+    label(c,'合 龙 下 水',6630,y-110,15,'#756547');
+  }
+  if(visible(9000,750)){
+    const y=roadY(9000)-105;
+    poly(c,[[8775,y-60],[9260,y-14],[9310,y+87],[8800,y+37]],'#d2bc8555','#a29168');
+    for(let i=0;i<150;i++){const r=seed(i+47),x=8810+r()*450,yy=y-27+r()*74;ellipse(c,x,yy,1.8,1,'#a18c58');}
+    for(const x of [8860,9170]){line(c,[[x,y+35],[x-5,y-23]],'#8d7950',3);line(c,[[x-6,y-23],[x+45,y-16]],'#8d7950',2);for(let i=0;i<6;i++)line(c,[[x+15+i*5,y-20],[x+13+i*5,y-9]],'#8d7950',1);}
+    poly(c,[[8310,riverY(8500)-180],[8620,riverY(8700)-128],[8620,riverY(8700)-110],[8310,riverY(8500)-163]],'#a6ae8955','#88906b');
+  }
+  if(visible(12000,700)){
+    const y=roadY(12000,1)+28;
+    for(const dx of [-93,-61,61,93])line(c,[[12000+dx,y+11],[12000+dx,y-67]],'#8a7551',3);
+    line(c,[[11903,y-67],[12097,y-67]],'#8a7551',4);
+    for(const dx of [-62,0,62]){poly(c,[[11982+dx,y-22],[12018+dx,y-22],[12015+dx,y-49],[11985+dx,y-49]],'#9a926b','#756e4c');ellipse(c,12000+dx,y-23,20,5,'#b1a27b','#756e4c');line(c,[[12000+dx,y-49],[12000+dx,y-65]],'#7b6e4c',1);}
+    ellipse(c,11860,y+46,24,9,'#b6b294','#8c8b6c');ellipse(c,11860,y+41,17,5,'#969e82','#8c8b6c');
+  }
+  if(visible(13900,650)){
+    const y=roadY(13900)-97;
+    c.beginPath();c.moveTo(13810,y);c.bezierCurveTo(13800,y-93,13925,y-115,13940,y-12);c.closePath();c.fillStyle='#a68865';c.fill();c.strokeStyle='#806e50';c.stroke();
+    poly(c,[[13850,y],[13894,y],[13890,y-37],[13855,y-37]],'#625e48','#8a7655');
+    for(let i=0;i<4;i++){const x=14000+i*45;line(c,[[x,y+3],[x,y-117]],'#8b7853',3);if(i<3){poly(c,[[x,y-108],[x+43,y-108],[x+41,y-39],[x+2,y-34]],['#a57c63','#7d8d7a','#b1a277'][i],'#8a7858');for(let j=0;j<4;j++)line(c,[[x+5+j*10,y-102],[x+5+j*10,y-43]],'#6f735a55',.8);}}
+    for(let i=0;i<8;i++)barrel(13760+i*25,y+52,.5+(i%3)*.12);
+  }
+  if(visible(16800,900)){
+    const y=roadY(16800)-90;
+    for(const [dx,dy] of [[-150,-110],[40,-180],[240,-70],[430,-130]]){tree(c,16800+dx,y+dy,1.1+(dx%3)*.1);const r=seed(dx+600);for(let i=0;i<17;i++)ellipse(c,16800+dx-44+r()*91,y+dy-87+r()*49,2.6,1.4,'#d4bcb1aa');}
+    for(const [x,dy] of [[16690,28],[17020,-23]]){poly(c,[[x-40,y+dy],[x+40,y+dy+6],[x+52,y+dy+37],[x-28,y+dy+31]],'#b49d7866','#9f8b65');basket(x+8,y+dy+14);ellipse(c,x-12,y+dy+9,9,3,'#c5b691','#8d805f');}
+    for(let i=0;i<22;i++){const x=16350+i*40;line(c,[[x,y+115+Math.sin(i*.4)*16],[x+2,y+86+Math.sin(i*.4)*16]],'#9f966e',1.4);}
+  }
   // Hand-laid shoreline stones and reed beds break the regular river band.
   for(let x=Math.floor(left/73)*73;x<left+width+80;x+=73){const r=seed(x+30);const y=riverY(x)+(x%2?1:-1)*(150+r()*22);for(let i=0;i<4;i++){const px=x+i*6;line(c,[[px,y],[px-4,y-18-r()*13]],'#8c956666',.7);}}
 }
@@ -126,9 +161,24 @@ export function drawLivingScenery(c,d,t,left,right){
     for(let i=0;i<14;i++){const a=i*Math.PI/7;line(c,[[0,0],[Math.cos(a)*66,Math.sin(a)*66]],'#81714b',3);c.save();c.translate(Math.cos(a)*66,Math.sin(a)*66);c.rotate(a);poly(c,[[0,-9],[16,-9],[16,9],[0,9]],'#a69062','#736947');c.restore();}ellipse(c,0,0,9,9,'#a28d61','#6c6648');c.restore();
     for(let i=0;i<5;i++)ellipse(c,x+Math.sin(t*7+i)*25,y+63+(t*30+i*12)%26,7,1.5,'#e3dbb880');
   }
-  for(const x of [6330,6890,7510])if(x>left&&x<right){
-    const y=roadY(x)-20;drawFigure(c,{x,y,seed:x,color:'#8c856c',role:'farmer',hat:true,moving:false},t);
-    const angle=Math.sin(t*3)*.6;line(c,[[x+12,y-24],[x+24+angle*15,y-42-angle*15]],'#7b6746',2);line(c,[[x+21+angle*15,y-42-angle*15],[x+31+angle*15,y-42-angle*15]],'#696a54',5);
+  if(left<6470&&right>6270){
+    const x=6330,y=roadY(x)-20,a=Math.sin(t*2.4)*9;
+    for(const [dx,dir] of [[0,1],[88,-1]])drawFigure(c,{x:x+dx+a*.2,y:y+dx*.12,dir,seed:dx,color:dx?'#9e8b70':'#7e8c78',role:'farmer',moving:false},t);
+    line(c,[[x+8+a,y-27],[x+80+a,y-18]],'#79734f',3);for(let i=0;i<8;i++)line(c,[[x+17+a+i*7,y-25+i*.8],[x+20+a+i*7,y-19+i*.8]],'#b5ac86',1);
+  }
+  if(left<6970&&right>6800){
+    const x=6850,y=roadY(x)-20;drawFigure(c,{x,y,seed:8,color:'#8c856c',role:'farmer',hat:true,moving:false},t);
+    const a=Math.sin(t*3)*.6;line(c,[[x+12,y-24],[x+24+a*15,y-42-a*15]],'#7b6746',2);line(c,[[x+21+a*15,y-42-a*15],[x+31+a*15,y-42-a*15]],'#696a54',5);
+  }
+  if(left<7650&&right>7440){
+    const x=7510,y=roadY(x)-20;drawFigure(c,{x,y,seed:11,color:'#a18b6c',role:'farmer',moving:false},t);
+    ellipse(c,x+35,y-19,15,15,null,'#8b7a53');line(c,[[x+35,y-19],[x+35+Math.cos(t*2)*15,y-19+Math.sin(t*2)*15]],'#8b7a53',2);
+    for(let i=0;i<3;i++)line(c,[[x+49,y-22+i*3],[x+152,y-18+i*3+Math.sin(t*3+i)]],'#a7986d',.7);
+  }
+  if(left<9200&&right>8790){
+    const x=8970,y=roadY(x)-52,a=Math.sin(t*1.8)*5;drawFigure(c,{x,y,seed:17,color:'#8d9375',role:'farmer',moving:false},t);
+    ellipse(c,x+18,y-21+a,22,5,'#b6a171','#8d7a54');
+    for(let i=0;i<14;i++){const phase=(t*.7+i/14)%1;ellipse(c,x+18+Math.sin(i*3)*phase*33,y-19+a+phase*41,1.2,.7,'#ad945f');}
   }
   if(left<14600&&right>14400){
     const y=roadY(14500)-96;

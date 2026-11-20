@@ -2,15 +2,16 @@ import './style.css';
 import { WORLD, BRIDGES, DISTRICTS, districtAt, SAVE_KEY, POIS, SOUVENIRS, COINS, CARGO, DELIVERY, START, newGame, restoreGame, restoreSession, stepAlongRoad, nearestSouvenir, distance, clamp, riverY, roadY, route, bridgeLift, stampCount } from './game.js';
 import { Scene } from './scene.js';
 import { relativeMotion } from './eye.js';
-import { RURAL_ACTIVITIES } from './game.js';
+import { RURAL_ACTIVITIES, PARCELS, handOverParcel, markGuide } from './game.js';
 import { startActivity } from './activities.js';
+import { Soundscape } from './audio.js';
 
 const $ = s => document.querySelector(s);
 let stored=null;try{stored=localStorage.getItem(SAVE_KEY);}catch{}
 const state=restoreGame(stored);
 const session=restoreSession(stored),touch=matchMedia('(pointer:coarse)').matches;
 const game={ state, player:{...(session.boat?.player||state.player)}, camera:{x:state.player.x,y:state.player.y+30,zoom:!stored&&touch?1.05:session.zoom}, mode:session.boat?'boat':'walk',boatRun:session.boat,path:[],target:null,particles:[],facing:1,moving:false,following:true,paused:false,time:0 };
-let stamina=100, keys=new Set(), near=null, scene, last=0, lastSave=0, lastHUD=0, toastTimer, ambient=null, audioContext=null, soundOn=false;
+let stamina=100, keys=new Set(), near=null, scene, last=0, lastSave=0, lastHUD=0, toastTimer, soundscape=null, audioContext=null, soundOn=false;
 let stick={x:0,y:0}, sprint=false, dragging=null, dirty=false,autoInteract=null,preferredSound=session.sound,blockedAt=-10;
 Object.assign(game,{view:session.view||'scroll',yaw:session.yaw??Math.PI,pitch:0,fov:1,opening:true});
 
@@ -29,9 +30,11 @@ document.querySelector('#app').innerHTML=`
         <button class="quest-row" id="courier-quest"><span class="quest-icon">信</span><span><b>街市跑腿</b><small id="courier-detail">与虹桥旁的驿使交谈</small></span><span class="quest-arrow">↗</span></button>
         <button class="quest-row" id="boat-quest"><span class="quest-icon">舟</span><span><b>汴河拾货</b><small id="boat-detail">去码头，亲手摇橹拾货</small></span><span class="quest-arrow">↗</span></button>
         <button class="quest-row" id="souvenir-quest"><span class="quest-icon">春</span><span><b>春日拾趣</b><small id="souvenir-detail">沿两岸寻找三件春日小物</small></span><span class="quest-arrow">↗</span></button>
+        <button class="quest-row" id="rural-quest"><span class="quest-icon">乡</span><span><b>乡野五艺</b><small id="rural-detail">船坞、水磨、古刹、春集与踏青</small></span><span class="quest-arrow">↗</span></button>
       </div>
-      <p class="quest-foot">点选目标，沿街寻路。到身边后按 E 互动。</p>
+      <p class="quest-foot">点选只标方向。亲手行走，到身边按 E。</p>
     </aside>
+    <div id="guide-hud" class="guide-hud parchment" hidden><span id="guide-text"></span><button id="guide-route">辅助寻路</button><button id="guide-clear" aria-label="清除目标">×</button></div>
     <div class="view-tools parchment"><button id="zoom-in" aria-label="放大画面" title="放大">＋</button><button id="zoom-out" aria-label="缩小画面" title="缩小">−</button><span></span><button id="follow" title="镜头回到我" aria-label="镜头回到我">归位</button><button id="pause" title="暂停 / 继续" aria-label="暂停游戏" aria-pressed="false">Ⅱ</button></div>
     <div class="purse parchment"><i>文</i><strong id="coins">0</strong><span>铜钱</span><div class="energy"><div id="energy-fill"></div></div><small>脚力</small></div>
     <div id="boat-hud" class="boat-hud parchment" hidden><span>汴河拾货 <b id="cargo-count">0 / 5</b></span><strong id="boat-time">90</strong><small>秒 · 避船靠箱</small><button id="next-cargo">货箱指引 →</button><button id="disembark">返回码头</button></div>
@@ -59,6 +62,7 @@ function save() {
 }
 function toast(text) { $('#toast').textContent=text;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4200); }
 function showDialog(title,body,actions=[{text:'继续游历'}]) {
+  soundscape?.update(game.player.x,false,soundOn&&!game.paused&&!document.hidden);
   keys.clear();stick={x:0,y:0};sprint=false;
   if(touch)body=body.replaceAll('按 <kbd>E</kbd>','点右下互动按钮').replaceAll('按 E','点右下互动按钮');
   $('#dialog-title').textContent=title;$('#dialog-body').innerHTML=body;
@@ -72,7 +76,22 @@ function goto(p) {
   if(game.mode==='boat'){game.target={x:clamp(p.x,250,WORLD.width-250),y:clamp(p.y,riverY(p.x)-100,riverY(p.x)+100)};return;}
   game.path=route(game.player,p);game.target=game.path.at(-1);dirty=true;
 }
-function goPOI(id) { if(game.mode==='boat'){toast('先点击返回码头，再步行游历。');return;}const p=POIS.find(p=>p.id===id);goto(p);autoInteract=p.id;toast(`正在前往${p.name}，到达后自动交谈。`); }
+function guideTo(p) {
+  if(game.mode==='boat'){toast('先点击返回码头，再步行游历。');return;}
+  $('#welcome').hidden=true;autoInteract=null;markGuide(game,p);game.following=true;
+  $('#quests').classList.remove('expanded','travelling');
+  toast(`已标记${p.name}。按方向行走；辅助寻路可选，但不会替你交谈或拾取。`);
+}
+function goPOI(id) { const p=POIS.find(p=>p.id===id);if(p)guideTo(p); }
+function deliver(p) {
+  const parcel=PARCELS.find(q=>q.id===p.id);
+  showDialog(`${p.name} · 哪一份是本店的？`,`<p>${parcel.clue}</p><p>翻开背篓，亲手选一份递给掌柜。</p>`,PARCELS.map(q=>({text:q.name,secondary:true,run:()=>{
+    if(!handOverParcel(state,p.id,q.id)){showDialog('掌柜 · 这份不是我的',`<p>${parcel.clue} 再看看包裹的模样。</p>`,[{text:'重新辨认包裹',run:()=>deliver(p)}]);return;}
+    stamina=100;burst(p);chime();save();
+    const next=POIS.find(q=>q.id===DELIVERY[state.delivered]);
+    showDialog(`${p.name} · 送到了`,`<p>${parcel.reply}</p><p><b>酬谢 12 文</b>，脚力恢复。${next?`下一站是<b>${next.name}</b>，仍沿北岸向西。`:'三份已送达，「信」印收入手记。'}</p>`,[{text:next?'标记下一家 · 我自己走':'收下「信」印',run:()=>next?goPOI(next.id):checkEnding()}]);
+  }})));
+}
 function nearest() {
   const candidates=[...POIS.map(p=>({...p,kind:p.type==='sight'&&!RURAL_ACTIVITIES[p.id]?'place':'person'})),...SOUVENIRS.filter(p=>!state.souvenirs.includes(p.id)).map(p=>({...p,kind:'item'}))];
   return candidates.map(p=>({...p,d:distance(p,game.player)})).filter(p=>p.d<(p.kind==='item'?72:103)).sort((a,b)=>a.d-b.d)[0]||null;
@@ -81,6 +100,7 @@ function interact() {
   if(dialog.open||game.paused)return;
   if(game.mode==='boat'){stamina=Math.max(0,stamina-12);game.boatRun.boost=1;return;}
   near=nearest();if(!near)return;
+  if(game.guide?.id===near.id)game.guide=null;
   game.moving=false;autoInteract=null;
   if(near.kind==='item'){
     state.souvenirs.push(near.id);state.coins+=8;burst(near);toast(`拾得${near.name} · +8 文${state.souvenirs.length===3?' · 「春」印已入手记':''}`);chime();save();updateHUD();checkEnding();return;
@@ -98,9 +118,7 @@ function interact() {
     showDialog('船头 · 这回，换你掌舵',`<p>东边的货箱落了水。借你一叶小舟，<b>90 秒内拾起 5 个木箱</b>，便能换来「舟」印。</p><p>${touch?'左下方向盘划船，也可点水面驶向目标；按住「疾行」加速。':'WASD / 方向键划船，也可点击水面；Shift 加速。'} 靠近货箱自动拾取，碰船扣 3 秒。上方「货箱指引」会指引你前行。</p><p class="fact">虹桥无桥墩，大船需放倒桅杆才能穿过木拱。货箱在码头东边，船游结束后也可继续沿长卷漫步。</p>`,[{text:'登舟 · 我来试试',run:startBoat},{text:'暂不上船',secondary:true}]);return;
   }
   if(state.courierStarted&&DELIVERY[state.delivered]===p.id){
-    state.delivered++;state.coins+=12;stamina=100;burst(p);chime();save();
-    const next=POIS.find(p=>p.id===DELIVERY[state.delivered]);
-    showDialog(`${p.name} · 送到了`, `<p>有劳你专程跑这一趟！这一份收下了，<b>酬谢 12 文</b>。坐下喝口茶，脚力也恢复了。</p><p>${next?`下一家是<b>${next.name}</b>，继续沿街往西。`:'三份委托全部送达，「信」印已记入手记。谢谢这位汴京好脚力！'}</p>`,[{text:next?'好，继续送下一家':'收下「信」印',run:()=>next?goPOI(next.id):checkEnding()}]);return;
+    deliver(p);return;
   }
   if(p.type==='shop'){
     if(state.courierStarted&&state.delivered<3){const next=POIS.find(q=>q.id===DELIVERY[state.delivered]);showDialog(`${p.name} · 掌柜提醒`,`<p>背篓里的货物还没轮到本店。请先送去<b>${next.name}</b>，再回来交给我。</p>`,[{text:`先去${next.name}`,run:()=>goPOI(next.id)},{text:'继续逛逛',secondary:true}]);return;}
@@ -111,7 +129,7 @@ function interact() {
   showDialog(p.name,`<p>${words[p.id]||'且听人声，且看流水。'}</p><p class="fact">本作是依据原画意象创作的互动小城，不是逐像素或建筑考古复原。</p>`);
 }
 function startBoat() {
-  game.mode='boat';game.yaw=0;game.path=[];autoInteract=null;game.target=null;game.player={x:3650,y:riverY(3650)-65};game.boatRun={remaining:90,collected:[],cooldown:6,boost:0};game.following=true;stamina=100;game.facing=1;toast('向东出发，靠近木箱拾货。可看货箱箭头方向，亲手掌舵。');save();updateHUD();
+  game.mode='boat';game.guide=null;game.yaw=0;game.path=[];autoInteract=null;game.target=null;game.player={x:3650,y:riverY(3650)-65};game.boatRun={remaining:90,collected:[],cooldown:6,boost:0};game.following=true;stamina=100;game.facing=1;toast('向东出发，靠近木箱拾货。可看货箱箭头方向，亲手掌舵。');save();updateHUD();
 }
 function finishBoat(won=false,timedOut=false) {
   if(game.mode!=='boat')return;
@@ -131,6 +149,10 @@ function updateHUD() {
   $('#boat-detail').textContent=state.boatWon?'五箱归仓 · 「舟」印已得':'去码头，亲手摇橹拾货';
   $('#souvenir-detail').textContent=state.souvenirs.length===3?'三物收齐 · 「春」印已得':`已拾 ${state.souvenirs.length} / 3 · 两岸都有春日小物`;
   $('#courier-quest').classList.toggle('complete',state.delivered===3);$('#boat-quest').classList.toggle('complete',state.boatWon);$('#souvenir-quest').classList.toggle('complete',state.souvenirs.length===3);
+  $('#rural-detail').textContent=`已体验 ${state.rural.length} / 5 · 完成每项得十五文`;
+  $('#rural-quest').classList.toggle('complete',state.rural.length===5);
+  $('#guide-hud').hidden=!game.guide||game.mode==='boat';
+  if(game.guide)$('#guide-text').textContent=`${game.guide.name} · ${Math.ceil(distance(game.player,game.guide)/20)} 步`;
   $('#journey').textContent=`已探索 ${state.visited.length} / ${POIS.length} 处风物`;
   near=game.mode==='walk'?nearest():null;
   $('#interact').disabled=!near&&game.mode!=='boat';
@@ -178,7 +200,7 @@ function tick(dt,elapsed=dt) {
     else if(game.path.length){
       let budget=speed*dt;
       while(game.path.length&&budget>0){const p=game.path[0],d=distance(p,game.player);if(d<=budget){game.player={...p};budget-=d;game.path.shift();}else{game.facing=Math.sign(p.x-game.player.x)||game.facing;game.player.x+=(p.x-game.player.x)/d*budget;game.player.y+=(p.y-game.player.y)/d*budget;budget=0;}game.moving=true;}
-      if(!game.path.length){game.target=null;const arrived=autoInteract;autoInteract=null;$('#quests').classList.remove('travelling');$('#quests').classList.add('expanded');if(arrived&&nearest()?.id===arrived)interact();}dirty=true;
+      if(!game.path.length){game.target=null;autoInteract=null;$('#quests').classList.remove('travelling');$('#quests').classList.add('expanded');toast('已经走到标记附近，按 E 或点互动按钮，亲手交谈或拾取。');}dirty=true;
     }
     for(const coin of COINS)if(!state.pickedCoins.includes(coin.id)&&distance(coin,game.player)<24){state.pickedCoins.push(coin.id);state.coins++;burst(coin);dirty=true;}
     for(const p of POIS)if(!state.visited.includes(p.id)&&distance(p,game.player)<130){state.visited.push(p.id);dirty=true;}
@@ -202,7 +224,7 @@ function tick(dt,elapsed=dt) {
 }
 function frame(now) {
   const elapsed=last?Math.max(0,(now-last)/1000):0,dt=Math.min(elapsed,.1);last=now;
-  if(ambient)ambient.gain.value=soundOn&&!game.paused&&!dialog.open&&!document.hidden&&!game.opening ? .012 : 0;
+  soundscape?.update(game.player.x,!game.paused&&!dialog.open&&!document.hidden&&!game.opening,soundOn&&!game.paused&&!document.hidden);
   if(!game.paused&&!dialog.open&&!document.hidden&&!game.opening)tick(dt,elapsed);
   scene.draw(game);
   if(now-lastHUD>120){updateHUD();lastHUD=now;}
@@ -214,23 +236,33 @@ $('#begin').onclick=()=>{$('#welcome').hidden=true;canvas.focus({preventScroll:t
 $('#close-dialog').onclick=()=>dialog.close();
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
 $('#interact').onclick=interact;$('#disembark').onclick=()=>finishBoat();
-$('#next-cargo').onclick=()=>{game.target=null;toast('箭头只指方向，不会代你划船；用方向盘、WASD 或点击水面掌舵。');};
+$('#next-cargo').onclick=()=>{toast('箭头只指方向，不会代你划船；用方向盘、WASD 或点击水面掌舵。');};
 $('#courier-quest').onclick=()=>goPOI(state.courierStarted&&state.delivered<3?DELIVERY[state.delivered]:'post');
 $('#boat-quest').onclick=()=>goPOI('dock');
-$('#souvenir-quest').onclick=()=>{const p=nearestSouvenir(game.player,state.souvenirs);if(!p){toast('三件春日小物已收入行囊。');return;}if(game.mode==='boat'){toast('先回码头，再去寻春日小物。');return;}goto(p);autoInteract=p.id;toast(`前往最近的${p.name}，到达后拾取。`);};
+$('#souvenir-quest').onclick=()=>{const p=nearestSouvenir(game.player,state.souvenirs);if(!p){toast('三件春日小物已收入行囊。');return;}guideTo(p);};
+$('#rural-quest').onclick=()=>{const p=POIS.filter(p=>RURAL_ACTIVITIES[p.id]&&!state.rural.includes(p.id)).sort((a,b)=>distance(a,game.player)-distance(b,game.player))[0];if(p)guideTo(p);else toast('乡野五艺都已记入手记，仍可找老朋友重玩。');};
+$('#guide-route').onclick=()=>{if(game.guide){goto(game.guide);toast('辅助行走已开启。到达后仍需按 E 亲手交谈或拾取。');}};
+$('#guide-clear').onclick=()=>{game.guide=null;game.path=[];game.target=null;autoInteract=null;};
 $('#quest-toggle').onclick=()=>{$('#district-links').hidden=true;$('#app').classList.remove('atlas-open');$('#quests').classList.remove('travelling');$('#quests').classList.toggle('expanded');};
 function zoom(delta) { if(game.view==='eye')game.fov=clamp(game.fov+delta,.65,1.5);else game.camera.zoom=clamp(game.camera.zoom+delta,.46,2.2);dirty=true; }
 $('#zoom-in').onclick=()=>zoom(.12);$('#zoom-out').onclick=()=>zoom(-.12);$('#follow').onclick=()=>{game.following=true;};
-function pause() { game.paused=!game.paused;$('#pause-screen').hidden=!game.paused;$('#pause').setAttribute('aria-pressed',String(game.paused));$('#pause').setAttribute('aria-label',game.paused?'继续游戏':'暂停游戏');keys.clear(); }
+function pause() { game.paused=!game.paused;if(game.paused)soundscape?.update(game.player.x,false,false);$('#pause-screen').hidden=!game.paused;$('#pause').setAttribute('aria-pressed',String(game.paused));$('#pause').setAttribute('aria-label',game.paused?'继续游戏':'暂停游戏');keys.clear(); }
 $('#pause').onclick=pause;$('#resume').onclick=pause;
-$('#help').onclick=()=>showDialog('初到汴京，怎样游历？',`<div class="controls-guide"><p>${touch?'左下方向盘可斜向行走、滑动转向，松手停止；按住「疾行」加速。':'<kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 沿街行走；<kbd>Shift</kbd> 疾行。'}</p><p><b>点人物</b>：沿道路走近后自动交谈。也可用${touch?'右下互动按钮':'E / 底部互动按钮'}送货、拾取。</p><p><b>点地面或任务</b>：自动寻路，跨河会走桥；任务面板会收起。交谈后继续原路线。</p><p><b>拖动画面</b>看风景，「归位」回到自己；${touch?'双指捏合':'滚轮'}或 + / − 缩放。</p><p><b>展开十景</b>：步行看风景，或花十二文雇车远游。</p><p><b>乘船</b>：90 秒捞起 5 个木箱，碰船扣 3 秒；看货箱箭头方向，亲手掌舵。超时后可查看进度并重试。</p></div><p class="fact">进度保存在当前浏览器；刷新后恢复正在进行的拾货挑战、缩放与声音偏好。声音在下次触摸后恢复，暂停和交谈时静音。</p>`);
+$('#help').onclick=()=>showDialog('初到汴京，怎样游历？',`<div class="controls-guide"><p>${touch?'左下方向盘可斜向行走，松手停止；按住「疾行」加速。':'<kbd>WASD</kbd> / 方向键沿街行走；<kbd>Shift</kbd> 疾行。'}</p>
+<p><b>任务只指方向</b>：点任务或远处人物，不会代你行走、交货或拾取。走近后按 E 或点互动按钮；送货时看线索，选对包裹。</p>
+<p><b>辅助寻路可选</b>：点标记旁「辅助寻路」、地面或舆图，才会沿道路行走；到达仍需亲手互动。</p>
+<p><b>拖动画面</b>看风景，「归位」回到自己；滚轮、双指或 + / − 缩放。第一人称拖动转头。</p>
+<p><b>远郊五艺</b>：点「乡野五艺」标记下一项。船坞落锤、水磨转轮、古刹记钟、春集藏豆与远郊放鸢都能亲手玩，每项初次十五文。</p>
+<p><b>展开十景</b>：可标方向自己走，也可雇车。首程车票免费，此后十二文一程。</p>
+<p><b>乘船</b>：90 秒捞起 5 箱，碰船扣 3 秒。箭头只指方向，用方向盘、WASD 或点水面亲手掌舵；超时可重试。</p></div>
+<p class="fact">进度自动保存在当前浏览器。声音在触摸后恢复；暂停、后台静音，对话时背景音静音，操作钟音仍可听见。</p>`);
 $('#journal').onclick=()=>showDialog('行囊 · 一日汴京',`<div class="earned-stamps"><span class="${state.delivered===3?'earned':''}">信</span><span class="${state.boatWon?'earned':''}">舟</span><span class="${state.souvenirs.length===3?'earned':''}">春</span></div><p>街市跑腿：${state.delivered} / 3 份送达<br>汴河拾货：${state.boatWon?'已完成':'待乘舟'}<br>春日拾趣：${state.souvenirs.length} / 3 件小物<br>乡野游艺：${state.rural.length} / 5 项（${state.rural.map(id=>RURAL_ACTIVITIES[id].title).join('、')||'尚未体验'}）<br>探索风物：${state.visited.length} / ${POIS.length} 处<br>行囊铜钱：${state.coins} 文</p><p class="fact">这是对《清明上河图》市井意象的代码重绘，建筑布局与任务均为游戏创作，并非原画的精确测绘。</p>`,[{text:'合上手记'},{text:'重新启程',secondary:true,run:()=>showDialog('重新开始这一日？','<p>将清除这次游历的铜钱、印记与任务进度。此操作无法撤销。</p>',[{text:'保留进度，继续游历'},{text:'确认重新开始',secondary:true,run:()=>{Object.assign(state,newGame());game.mode='walk';game.boatRun=null;game.player={...START};game.path=[];game.target=null;autoInteract=null;game.following=true;stamina=100;save();toast('新的一日，从虹桥开始。');}}])}]);
 $('#fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('#app').requestFullscreen();}catch{toast('当前浏览器不支持全屏，仍可正常游玩。');}};
-function chime() { if(!soundOn||!audioContext)return;const now=audioContext.currentTime;for(const [i,f] of [523.25,659.25,783.99].entries()){const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.value=f;o.connect(g);g.connect(audioContext.destination);g.gain.setValueAtTime(0,now+i*.08);g.gain.linearRampToValueAtTime(.035,now+i*.08+.02);g.gain.exponentialRampToValueAtTime(.001,now+i*.08+.7);o.start(now+i*.08);o.stop(now+i*.08+.8);}}
+function chime(degree) { if(soundOn&&!game.paused&&!document.hidden)soundscape?.cue(degree); }
 $('#sound').onclick=async()=>{
   try{
     soundOn=!soundOn;
-    if(soundOn){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error();audioContext??=new Audio();await audioContext.resume();if(!ambient){ambient=audioContext.createGain();ambient.gain.value=.012;ambient.connect(audioContext.destination);for(const f of [130.81,196,261.63]){const o=audioContext.createOscillator();o.type='sine';o.frequency.value=f;o.connect(ambient);o.start();}}else ambient.gain.value=.012;chime();}else if(ambient)ambient.gain.value=0;
+    if(soundOn){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error();audioContext??=new Audio();await audioContext.resume();soundscape??=new Soundscape(audioContext);soundscape.update(game.player.x,!dialog.open&&!game.opening,true);chime();}else soundscape?.update(game.player.x,false,false);
     preferredSound=soundOn;save();$('#sound').setAttribute('aria-pressed',String(soundOn));$('#sound').classList.toggle('active',soundOn);$('#sound').setAttribute('aria-label',soundOn?'关闭环境音':'开启环境音');
   }catch{soundOn=false;toast('这个浏览器暂时不能播放声音，不影响游玩。');}
 };
@@ -242,7 +274,7 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>{keys.clear();stick={x:0,y:0};sprint=false;save();});
-document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){keys.clear();stick={x:0,y:0};sprint=false;if(ambient)ambient.gain.value=0;save();}last=performance.now();});
+document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden){keys.clear();stick={x:0,y:0};sprint=false;soundscape?.update(game.player.x,false,false);save();}last=performance.now();});
 window.addEventListener('pagehide',save);
 const pointers=new Map();let pinch=null;
 canvas.addEventListener('pointerdown',e=>{
@@ -261,10 +293,10 @@ canvas.addEventListener('pointerup',e=>{
   if(!dragging)return;
   if(!dragging.moved){
     const r=canvas.getBoundingClientRect(),screenPoint={x:e.clientX-r.left,y:e.clientY-r.top};
-    if(game.view==='eye'){const person=scene.eye.hit(screenPoint);if(person&&game.mode==='walk')goPOI(person.id);else if(screenPoint.y>scene.eye.horizon)goto(scene.eye.unproject(screenPoint,game));dragging=null;return;}
+    if(game.view==='eye'){const person=scene.eye.hit(screenPoint);if(person&&game.mode==='walk'){if(distance(person,game.player)<103)interact();else goPOI(person.id);}else if(screenPoint.y>scene.eye.horizon)goto(scene.eye.unproject(screenPoint,game));dragging=null;return;}
     const point=scene.world(screenPoint,game.camera);
     const npc=POIS.find(p=>distance({x:p.x,y:p.y-bridgeLift(p)-25},point)<36/game.camera.zoom);
-    if(npc&&game.mode==='walk'){goto(npc);autoInteract=npc.id;}else goto(point);
+    if(npc&&game.mode==='walk'){if(distance(npc,game.player)<103)interact();else guideTo(npc);}else goto(point);
   }
   dragging=null;
 });
@@ -283,9 +315,9 @@ for(const b of document.querySelectorAll('[data-district]'))b.onclick=()=>{
   if(game.mode==='boat'){toast('请先回码头，再游历城郊。');return;}
   const district=DISTRICTS[Number(b.dataset.district)],p={x:district.x,y:roadY(district.x,district.bank||0)};
   $('#district-links').hidden=true;$('#app').classList.remove('atlas-open');
-  showDialog(`远游 · ${district.name}`,`<p>${district.note}</p><p>沿街步行可自由看风景；也可花 <b>12 文雇车</b>，直接到达这一景。</p>`,[{text:'沿街步行前往',run:()=>goto(p)},{text:state.coins>=12?'雇车前往 · 12 文':'雇车需 12 文',secondary:true,run:()=>{if(state.coins<12){toast('铜钱不足，沿街步行不花钱。');return;}state.coins-=12;game.player={...p};game.path=[];game.target=null;autoInteract=null;game.following=true;game.camera.x=p.x;game.camera.y=p.y+30;save();toast(`车马已到${district.name}。`);}}]);
+  showDialog(`远游 · ${district.name}`,`<p>${district.note}</p><p>沿街步行可自由看风景；雇车能直接到达这一景，${state.travelPass?'<b>首程车票免费</b>，之后每程十二文。':'每程 <b>12 文</b>。'}船坞、水磨、古刹、春集和远郊都有可亲手体验的游艺。</p>`,[{text:'标记方向 · 自己走',run:()=>guideTo({...p,name:district.name})},{text:state.travelPass?'使用首程车票 · 免费':state.coins>=12?'雇车前往 · 12 文':'雇车需 12 文',secondary:true,run:()=>{if(!state.travelPass&&state.coins<12){toast('铜钱不足，沿街步行不花钱。');return;}if(state.travelPass)state.travelPass=false;else state.coins-=12;game.player={...p};game.guide=null;game.path=[];game.target=null;autoInteract=null;game.following=true;game.camera.x=p.x;game.camera.y=p.y+30;save();toast(`车马已到${district.name}。`);}}]);
 };
-if(touch){$('#welcome>small').textContent='方向盘行走 · 点人物交谈 · 双指缩放';$('.quest-foot').textContent='点选目标自动前往；到达后交谈。';}
+if(touch){$('#welcome>small').textContent='方向盘行走 · 点人物交谈 · 双指缩放';$('.quest-foot').textContent='上下滑动看目标 · 只指路，不代走或拾取';}
 if(session.boat)toast('已恢复上次的拾货挑战，剩余时间与货箱已保留。');
 document.addEventListener('pointerdown',e=>{if(preferredSound&&!soundOn&&e.target.closest('#sound')===null)$('#sound').click();},{once:true});
 

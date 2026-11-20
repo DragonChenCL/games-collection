@@ -6,15 +6,15 @@ function activity(t,id){
   const originalDocument=globalThis.document,originalRAF=globalThis.requestAnimationFrame;
   let now=0,frame;
   const node=()=>({style:{},disabled:false,hidden:false,value:0,textContent:''});
-  const elements=new Map(['dialog','activity-root','activity-result','activity-progress','activity-hit','activity-marker','activity-bean','activity-again'].map(id=>[`#${id}`,node()]));
+  const elements=new Map(['dialog','activity-root','activity-result','activity-progress','activity-hit','activity-marker','activity-bean','activity-again','activity-sequence','activity-remind'].map(id=>[`#${id}`,node()]));
   elements.get('#dialog').open=true;
-  const cups=[node(),node(),node()],state={rural:[],coins:0};
-  globalThis.document={querySelector:s=>elements.get(s),querySelectorAll:s=>s==='[data-cup]'?cups:[]};
+  const cups=[node(),node(),node()],bells=[0,1,2].map(i=>({...node(),dataset:{bell:String(i)}})),state={rural:[],coins:0};
+  globalThis.document={querySelector:s=>elements.get(s),querySelectorAll:s=>s==='[data-cup]'?cups:s==='[data-bell]'?bells:[]};
   globalThis.requestAnimationFrame=callback=>{frame=callback;};
   t.mock.method(performance,'now',()=>now);
   t.after(()=>{if(originalDocument===undefined)delete globalThis.document;else globalThis.document=originalDocument;if(originalRAF===undefined)delete globalThis.requestAnimationFrame;else globalThis.requestAnimationFrame=originalRAF;});
   startActivity({id},{state,showDialog:()=>{cups.forEach(b=>b.disabled=true);elements.get('#activity-again').hidden=true;},chime(){},save(){},updateHUD(){}});
-  return {state,cups,get:id=>elements.get(`#${id}`),advance:seconds=>{for(let i=0;i<Math.round(seconds*20);i++){now+=50;const callback=frame;frame=null;callback?.(now);}}};
+  return {state,cups,bells,get:id=>elements.get(`#${id}`),advance:seconds=>{for(let i=0;i<Math.round(seconds*20);i++){now+=50;const callback=frame;frame=null;callback?.(now);}}};
 }
 
 test('a wrong cup locks the round until the shuffle is replayed',t=>{
@@ -31,6 +31,16 @@ test('missing a hammer strike resets the consecutive-hit streak',t=>{
   const a=activity(t,'shipyard'),hit=()=>a.get('activity-hit').onclick();
   hit();assert.equal(a.get('activity-progress').value,1/3);
   a.advance(.5);hit();assert.equal(a.get('activity-progress').value,0);
-  a.advance(.85);hit();hit();assert.equal(a.state.coins,0);assert.equal(a.get('activity-progress').value,2/3);
-  hit();assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['shipyard']);
+  a.advance(.85);hit();hit();assert.equal(a.state.coins,0);assert.equal(a.get('activity-progress').value,1/3);
+  a.advance(1.35);hit();assert.equal(a.get('activity-progress').value,2/3);assert.equal(a.state.coins,0);
+  a.advance(1.4);hit();assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['shipyard']);
+});
+test('bell memory uses the displayed sequence and wrong notes reset progress',t=>{
+  let i=0;t.mock.method(Math,'random',()=>[.1,.9,.4,.9][i++%4]);
+  const a=activity(t,'grove');assert.equal(a.get('activity-sequence').textContent,'宫 → 角 → 商 → 角');
+  a.bells[0].onclick();assert.equal(a.get('activity-progress').value,0);
+  a.advance(3);a.bells[0].onclick();assert.equal(a.get('activity-progress').value,.25);
+  a.bells[1].onclick();assert.equal(a.get('activity-progress').value,0);
+  a.get('activity-remind').onclick();assert.equal(a.get('activity-sequence').textContent,'宫 → 角 → 商 → 角');
+  a.advance(3);for(const n of [0,2,1,2])a.bells[n].onclick();assert.equal(a.state.coins,15);assert.deepEqual(a.state.rural,['grove']);
 });

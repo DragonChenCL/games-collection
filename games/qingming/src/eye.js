@@ -1,5 +1,6 @@
 import {WORLD,POIS,CARGO,SOUVENIRS,BRIDGES,riverY,roadY,bridgeLift,clamp} from './game.js';
 import {drawFigure} from './figures.js';
+import {drawGuide} from './navigation.js';
 
 export function relativeMotion(x,y,yaw){return{x:-y*Math.cos(yaw)-x*Math.sin(yaw),y:-y*Math.sin(yaw)+x*Math.cos(yaw)};}
 export function viewPoint(p,camera){const x=p.x-camera.x,y=p.y-camera.y;return{s:-Math.sin(camera.yaw)*x+Math.cos(camera.yaw)*y,d:Math.cos(camera.yaw)*x+Math.sin(camera.yaw)*y,z:p.z||0};}
@@ -123,9 +124,42 @@ export class EyeScene {
       const at=(t,side=0,z=0)=>point(bridge.a.x+(bridge.b.x-bridge.a.x)*t+nx*side,bridge.a.y+(bridge.b.y-bridge.a.y)*t+ny*side,Math.sin(t*Math.PI)*bridge.height+z);
       for(let i=0;i<32;i++){const a=i/32,b=(i+1)/32;face([at(a,-bw),at(a,bw),at(b,bw),at(b,-bw)],bridge.kind==='stone'?'#beb79a':i%2?'#c9b482':'#bba376');for(const side of [-bw,bw]){face([at(a,side),at(b,side),at(b,side,-27),at(a,side,-27)],bridge.kind==='stone'?'#a6a58c':'#8f7c51');face([at(a,side,17),at(b,side,17),at(b,side,20),at(a,side,20)],'#88764f');if(i%2===0)face([at(a,side,0),at(a+.003,side,0),at(a+.003,side,22),at(a,side,22)],'#796f4b');}}
     }
+    for(const x of [6310,6990,7660]){
+      if(Math.abs(x-cam.x)>1100)continue;const y=riverY(x)-182;
+      for(let i=0;i<12;i++){const xx=x-102+i*18,beam=Math.sin(i/11*Math.PI)*35+3;stroke(point(xx,y,4),point(xx,y-beam,43),'#8b7650',2.2);stroke(point(xx,y,4),point(xx,y+beam,43),'#8b7650',2.2);}
+      stroke(point(x-108,y,4),point(x+108,y,4),'#87734d',3);
+      for(const dx of [-91,97]){stroke(point(x+dx,y-48),point(x+dx,y-48,112),'#88724e',3);stroke(point(x+dx,y-48,112),point(x+dx+48,y-4,127),'#88724e',3);stroke(point(x+dx+48,y-4,127),point(x+dx+48,y-4,50),'#7d7050',.8);}
+    }
+    if(Math.abs(8750-cam.x)<1100){
+      const y=riverY(8750)-128,a=game.time*.36;
+      for(let i=0;i<14;i++){const theta=a+i*Math.PI/7,p=point(8750+Math.cos(theta)*59,y,61+Math.sin(theta)*59),q=point(8750+Math.cos(theta+.18)*59,y,61+Math.sin(theta+.18)*59);stroke(point(8750,y,61),p,'#81704c',2);face([p,q,point(q.x,y+19,q.z),point(p.x,y+19,p.z)],'#a99366');}
+      stroke(point(8545,roadY(8420)-80,69),point(8750,y,61),'#88734f',5);
+    }
+    if(Math.abs(12450-cam.x)<1200){
+      const x=12450,y=roadY(12000,1)+140;
+      for(let i=0;i<5;i++){const z=i*38,size=46-i*5;
+        face([point(x-size,y-size,z),point(x+size,y-size,z),point(x+size,y-size,z+28),point(x-size,y-size,z+28)],'#b5ad8d');
+        face([point(x+size,y-size,z),point(x+size,y+size,z),point(x+size,y+size,z+28),point(x+size,y-size,z+28)],'#a39f80');
+        face([point(x+size,y+size,z),point(x-size,y+size,z),point(x-size,y+size,z+28),point(x+size,y+size,z+28)],'#c1b696');
+        for(const side of [-1,1])face([point(x-size-10,y+side*(size+10),z+25),point(x+size+10,y+side*(size+10),z+25),point(x+size,y,z+42),point(x-size,y,z+42)],'#858b74');
+      }
+    }
+    for(let x=10900;x<12800;x+=170){
+      if(Math.abs(x-cam.x)>900)continue;const y=roadY(x,x%340===0?1:0)+(x%340===0?75:-100);
+      for(let j=0;j<4;j++){const xx=x+j*9,top=100+(j%3)*19;stroke(point(xx,y),point(xx+8,y,top),'#7e8a64',1.8);
+        for(let i=0;i<3;i++){const z=top-8-i*17;for(const side of [-1,1])face([point(xx+5,y,z),point(xx+side*30,y+7,z-13),point(xx+side*24,y-2,z-4)],'#829267',null);}
+      }
+    }
+    for(const [x,color] of [[14000,'#a47c66'],[14045,'#819179'],[14090,'#b6a57b']]){
+      if(Math.abs(x-cam.x)>950)continue;const y=roadY(13900)-125;
+      face([point(x,y,10),point(x+39,y,14),point(x+39,y,105),point(x,y,105)],color);
+      stroke(point(x-3,y),point(x-3,y,118),'#897650',2);stroke(point(x-3,y,118),point(x+44,y,118),'#897650',2);
+    }
+    for(const x of [16690,17020])if(Math.abs(x-cam.x)<900){const y=roadY(x)-85;face([point(x-40,y,1),point(x+40,y,1),point(x+40,y+45,1),point(x-40,y+45,1)],'#b19a78');}
     for(let x=Math.floor(start/180)*180;x<end;x+=180){
       if(BRIDGES.some(b=>x>b.a.x-70&&x<b.b.x+70))continue;
-      const bank=x%360===0?0:1,y=riverY(x)+(bank?194:-190),image=this.texture(`tree-${x%7}`,ctx=>this.drawers.tree(ctx,110,210,1.05,true));billboard(point(x,y),image);
+      if(x>10800&&x<12800)continue;
+      const bank=x%360===0?0:1,y=riverY(x)+(bank?194:-190),orchard=x>15300,image=this.texture(`tree-${x%7}-${orchard}`,ctx=>this.drawers.tree(ctx,110,210,1.05,!orchard));billboard(point(x,y),image);
     }
     const people=[...scene.npcs,...POIS.map(p=>({...p,seed:2,dir:1,moving:false,role:p.id==='grove'?'monk':p.id==='shipyard'?'farmer':'merchant'}))];
     for(const p of people){
@@ -141,6 +175,7 @@ export class EyeScene {
     for(const item of queue.sort((a,b)=>b.depth-a.depth)){c.globalAlpha=clamp(1-(item.depth-700)/1700,.15,1);item.run();}c.globalAlpha=1;
     if(game.mode==='boat'){c.beginPath();c.moveTo(w*.3,h);c.quadraticCurveTo(w*.47,h*.82,w*.5,h*.78);c.quadraticCurveTo(w*.53,h*.82,w*.7,h);c.fillStyle='#a18a61';c.fill();c.strokeStyle='#6c6247';c.lineWidth=3;c.stroke();}
     c.strokeStyle='#846e4d88';c.lineWidth=1;c.beginPath();c.moveTo(w/2-5,h/2);c.lineTo(w/2+5,h/2);c.moveTo(w/2,h/2-5);c.lineTo(w/2,h/2+5);c.stroke();
+    drawGuide(c,game,w,h);
     for(const poi of this.hits){const at=screen(point(poi.poi.x,poi.poi.y,bridgeLift(poi.poi)+62));if(at&&at.depth<320){c.font='13px Song,serif';c.textAlign='center';c.fillStyle='#7c4935';c.fillText(poi.poi.name,at.x,at.y);}}
     if(game.mode==='boat'){
       const goal=CARGO.filter(p=>!game.boatRun.collected.includes(p.id)).sort((a,b)=>Math.hypot(a.x-cam.x,a.y-cam.y)-Math.hypot(b.x-cam.x,b.y-cam.y))[0];
