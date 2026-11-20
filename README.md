@@ -69,3 +69,13 @@ python3 -m http.server 4173 --bind 0.0.0.0 --directory dist
 `game.js` 维护道路图、路径搜索与存档校验；`scene.js` 绘制长卷，`eye.js` 绘制第一人称透视；`activities.js` 提供五种远郊小游戏；`main.js` 连接输入、任务和游戏循环。字体及创作边界见 `games/qingming/CREDITS.md`。
 
 没有账号、服务器端存档、统计跟踪、运行时第三方请求或 service worker；不承诺首次断网加载。Canvas 场景需要现代浏览器与图形支持。
+
+## Discourse 微应用打包
+
+《入画 · 清明上河图》可以按 [linux-do/mapp-developer-guide](https://github.com/linux-do/mapp-developer-guide) 打包成 Discourse 微应用：
+
+```sh
+npm run build:mapp --workspace=games/qingming
+```
+
+产物是 `dist/mapp/qingming/package/app.zip`。应用 ID 和版本号取自 `games/qingming/mapp/manifest.json`，也可以用环境变量 `MINI_APP_ID`、`MINI_APP_VERSION` 覆盖；每次上传新包前需要提高版本号。打包脚本首次运行时会用 git 拉取指南仓库里的 SDK 打包器（可用 `MINI_APP_SDK_DIR` 指向本地的 `sdk` 目录）。
