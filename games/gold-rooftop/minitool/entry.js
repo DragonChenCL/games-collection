@@ -1,6 +1,7 @@
 import { standing, rank } from '../src/market.js';
 import { startScene } from '../src/scene.js';
 import { openStore } from './store.js';
+import { aiAvailable, roast, rankAvailable, loadBoard } from './extras.js';
 
 // __SNAPSHOT__ is the gold price written into the package at build time (see snapshot.json).
 const SNAPSHOT = __SNAPSHOT__;
@@ -73,6 +74,50 @@ function bind() {
   $('reset').addEventListener('click', () => { players = defaults(); cur = SNAPSHOT.cnyGram; save(); render(); });
 }
 
+function showPanel(message, rows) {
+  $('panel').hidden = false;
+  $('panelText').textContent = message;
+  const list = $('rankList');
+  while (list.firstChild) list.removeChild(list.firstChild);
+  (rows || []).forEach(r => {
+    const li = document.createElement('li');
+    [['span', '#' + r.rank], ['b', r.name], ['i', r.score + ' 层']].forEach(([tag, value]) => { const el = document.createElement(tag); el.textContent = value; li.appendChild(el); });
+    list.appendChild(li);
+  });
+}
+
+async function busy(button, work) {
+  if (button.disabled) return;
+  button.disabled = true;
+  try { await work(); } finally { button.disabled = false; }
+}
+
+function bindExtras(version) {
+  const xhs = window.xhs, roastButton = $('roast'), boardButton = $('board');
+  const hide = button => { button.hidden = true; if (roastButton.hidden && boardButton.hidden) $('extras').hidden = true; };
+  if (aiAvailable(xhs)) {
+    roastButton.hidden = false; $('extras').hidden = false;
+    roastButton.addEventListener('click', () => busy(roastButton, async () => {
+      if (!players.length) { showPanel('先加一个买入价，才有得评。'); return; }
+      showPanel('AI 正在组织语言…');
+      const list = players.map((p, i) => { const c = standing(p.price, cur); return { label: label(p, i), buy: p.price, pct: c.pct, floors: c.floors }; })
+        .sort((a, b) => b.floors - a.floors);
+      try { showPanel(await roast(xhs, cur, list)); } catch (e) { showPanel(e.message); }
+    }));
+  }
+  if (rankAvailable(xhs, version)) {
+    boardButton.hidden = false; $('extras').hidden = false;
+    boardButton.addEventListener('click', () => busy(boardButton, async () => {
+      showPanel('正在打开天台高度榜…');
+      const floors = players.reduce((m, p) => Math.max(m, standing(p.price, cur).floors), 0);
+      try {
+        const board = await loadBoard(xhs, floors);
+        showPanel((floors ? '已提交你的最高楼层 ' + floors + ' 层。' : '') + board.mine + (board.rows.length ? '' : '。榜上还没有人'), board.rows);
+      } catch (e) { showPanel(e.message); if (e.unauthorized) hide(boardButton); }
+    }));
+  }
+}
+
 // Keeps the title clear of the system status bar and the host's top buttons (client 9.49+).
 async function avoidHostButtons(version) {
   const miniTool = window.xhs && window.xhs.miniTool;
@@ -90,6 +135,7 @@ async function avoidHostButtons(version) {
 async function restore() {
   store = await openStore(window.xhs);
   avoidHostButtons(store.version);
+  bindExtras(store.version);
   if (store.reason) {
     status(store.reason === 'old' ? '当前小红书版本较旧，名单和现价不会保存；升级后可保存。' : '当前环境无法保存，名单和现价关闭后不会保留。', true);
     return;

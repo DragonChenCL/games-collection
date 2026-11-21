@@ -34,3 +34,11 @@ th { color: #9a97c9; font-weight: normal; } th:first-child, td:first-child { tex
 .loss { color: #5dff9b; } .gain { color: #ff5d5d; }
 .note { color: #8f8cbd; font-size: 12px; margin: 10px 0 8px; line-height: 1.7; }
 .note.err { color: #ff8f8f; }
+[hidden] { display: none !important; }
+.panel { margin: 12px 0 0; }
+.say { margin: 0; font-size: 15px; line-height: 1.7; color: #ffd23f; }
+.rank { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; }
+.rank li { display: flex; padding: 6px 0; border-bottom: 2px solid #2a2752; }
+.rank li span { flex: 0 0 auto; min-width: 36px; color: #9a97c9; }
+.rank li b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: normal; }
+.rank li i { flex: 0 0 auto; font-style: normal; color: #5dff9b; }

@@ -94,4 +94,4 @@ npm run build:mapp --workspace=games/qingming
 npm run build:minitool --workspace=games/gold-rooftop
 ```
 
-产物是 `dist/minitool/gold-rooftop/gold-rooftop-minitool.zip`，`index.html` 在 zip 根目录。小工具容器不能联网，所以这一版没有实时行情：默认现价取自 `games/gold-rooftop/minitool/snapshot.json`（打包前手动更新），进入后由用户自己修改现价。名单和现价保存在容器 Storage（需要小红书 9.46+），版本过旧或读不到版本时不保存。上传前需要在创服平台模拟器、Android 真机和 iOS 真机上各验证一次。
+产物是 `dist/minitool/gold-rooftop/gold-rooftop-minitool.zip`，`index.html` 在 zip 根目录。小工具容器不能联网，所以这一版没有实时行情：默认现价取自 `games/gold-rooftop/minitool/snapshot.json`（打包前手动更新），进入后由用户自己修改现价。名单和现价保存在容器 Storage（需要小红书 9.46+），版本过旧或读不到版本时不保存。「AI 锐评」（`window.xhs.AI`）和「天台高度榜」（排行榜，9.51+）是内测能力，需要在创服平台勾选对应高级能力和「用户头像和昵称」权限，未开通时入口自动隐藏。上传前需要在创服平台模拟器、Android 真机和 iOS 真机上各验证一次。
