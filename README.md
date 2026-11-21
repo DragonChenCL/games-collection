@@ -85,3 +85,13 @@ npm run build:mapp --workspace=games/qingming
 ```
 
 产物是 `dist/mapp/qingming/package/app.zip`。应用 ID 和版本号取自 `games/qingming/mapp/manifest.json`，也可以用环境变量 `MINI_APP_ID`、`MINI_APP_VERSION` 覆盖；每次上传新包前需要提高版本号。打包脚本首次运行时会用 git 拉取指南仓库里的 SDK 打包器（可用 `MINI_APP_SDK_DIR` 指向本地的 `sdk` 目录）。
+
+## 小红书小工具
+
+黄金天台模拟器可以打包成小红书小工具（离线 H5 zip）：
+
+```bash
+npm run build:minitool --workspace=games/gold-rooftop
+```
+
+产物是 `dist/minitool/gold-rooftop/gold-rooftop-minitool.zip`，`index.html` 在 zip 根目录。小工具容器不能联网，所以这一版没有实时行情：默认现价取自 `games/gold-rooftop/minitool/snapshot.json`（打包前手动更新），进入后由用户自己修改现价。名单和现价保存在容器 Storage（需要小红书 9.46+），版本过旧或读不到版本时不保存。「AI 锐评」（`window.xhs.AI`）和「天台高度榜」（排行榜，9.51+）是内测能力，需要在创服平台勾选对应高级能力和「用户头像和昵称」权限，未开通时入口自动隐藏。上传前需要在创服平台模拟器、Android 真机和 iOS 真机上各验证一次。

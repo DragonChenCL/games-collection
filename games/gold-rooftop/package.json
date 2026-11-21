@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 5174",
     "build": "vite build",
     "start": "vite preview --host 0.0.0.0 --port 4174",
+    "build:minitool": "vite build --config minitool/vite.config.js && node minitool/pack.mjs",
     "test": "node --test tests/*.test.js"
   },
   "devDependencies": { "vite": "^6.4.1" }
